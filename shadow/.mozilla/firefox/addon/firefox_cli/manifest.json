@@ -13,17 +13,12 @@
 
     "background": {
         "scripts": [
-            "omnibox.js",
             "background.js"
         ]
     },
 
     "content_security_policy": {
         "extension_pages": "default-src *; script-src *"
-    },
-
-    "omnibox": {
-        "keyword": "ql"
     },
 
     "host_permissions": [
