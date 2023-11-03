@@ -1,0 +1,45 @@
+{
+    "manifest_version": 3,
+    "name": "firefox_cli",
+    "version": "1.0",
+
+    "description": "Does stuff",
+
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "firefox_cli@qianli"
+        }
+    },
+
+    "background": {
+        "scripts": [
+            "omnibox.js",
+            "background.js"
+        ]
+    },
+
+    "content_security_policy": {
+        "extension_pages": "default-src *; script-src *"
+    },
+
+    "omnibox": {
+        "keyword": "ql"
+    },
+
+    "host_permissions": [
+        "<all_urls>"
+    ],
+
+    "permissions": [
+        "nativeMessaging",
+        "contextualIdentities",
+        "scripting",
+        "tabs",
+        "tabHide",
+        "activeTab",
+        "webRequest",
+        "cookies"
+    ]
+
+}
+
