@@ -6,7 +6,7 @@ import sys
 import asyncio
 import json
 import logging
-logging.basicConfig(filename='/tmp/native-host.log', level=logging.INFO)
+# logging.basicConfig(filename='/tmp/native-host.log', level=logging.INFO)
 
 _id = 1
 stdout_queue = asyncio.Queue()
