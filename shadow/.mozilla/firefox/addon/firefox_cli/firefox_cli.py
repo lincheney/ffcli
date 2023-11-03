@@ -292,6 +292,11 @@ class actions:
         async for data in getattr(client, args.fn)(*args.args).iter():
             print(json.dumps(data), flush=True)
 
+    def status(args):
+        args.fn = 'status'
+        args.args = ()
+        return actions.do(args)
+
     @with_client
     async def _crud(client, args):
         verb = dict(create='create', list='query', get='get', update='update', delete='remove')[args.CMD]
@@ -416,6 +421,8 @@ def main():
     sub = subparsers.add_parser('delete')
     sub.add_argument('type')
     sub.add_argument('id', type=parse_maybe_json)
+
+    sub = subparsers.add_parser('status')
 
     sub = subparsers.add_parser('curl')
     sub.add_argument('url')

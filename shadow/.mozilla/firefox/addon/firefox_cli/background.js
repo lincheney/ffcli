@@ -27,6 +27,8 @@ async function executeInTab(tabId, args, func) {
 const subscribers = {};
 
 const table = {
+    status() { return true; },
+
     browser,
 
     userAgent() { return window.navigator.userAgent; },
