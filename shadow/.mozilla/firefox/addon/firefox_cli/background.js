@@ -8,7 +8,7 @@ function send(msg, data) {
     return port.postMessage({...msg, type: 'data', data});
 }
 
-async function executeInTab(tabId, args, func) {
+async function _executeInTab(tabId, args, func) {
     const result = await browser.scripting.executeScript({
         injectImmediately: true,
         target: {tabId},
@@ -24,6 +24,78 @@ async function executeInTab(tabId, args, func) {
     }
 }
 
+async function executeInTab(msg, fn, tabId, ...args) {
+    return _executeInTab(tabId, [msg, fn, args], async (msg, fn, args) => {
+
+        function getNodes(path, filter) {
+            try {
+                filter = filter ?? {};
+                if (!filter.url || window.location === filter.url) {
+                    return Array.from(document.querySelectorAll(path));
+                }
+                return [];
+            } catch(e) {
+                throw new Error(e)
+            }
+        }
+
+        const table = {
+            dom: {
+
+                get(key, ...args) {
+                    return getNodes(...args).map(x => x[key]);
+                },
+
+                count(...args) {
+                    return getNodes(...args).length;
+                },
+
+                set(key, value, ...args) {
+                    const nodes = getNodes(...args);
+                    for (const node of nodes) {
+                        node[key] = value;
+                    }
+                    return nodes.length > 0;
+                },
+
+                call(key, ...args) {
+                    const nodes = getNodes(...args);
+                    return nodes.map(x => x[key]());
+                },
+
+                getAttributes(...args) {
+                    return getNodes(...args).map(x => {
+                        const attrs = {};
+                        for (const attr of x.attributes) {
+                            attrs[attr.name] = attr.value;
+                        }
+                        return attrs;
+                    });
+                },
+
+            },
+        };
+
+        function resolve_function(string) {
+            return (string || '').split('.').reduce((x, y) => x && x[y], table);
+        }
+
+        const func = resolve_function(fn);
+        if (typeof func != 'function') {
+            throw new Error(`no such function ${fn}`);
+        }
+
+        let value = func.bind(msg)(...(args || []));
+        if (value instanceof Promise) {
+            value = await value;
+        }
+        if (value && !JSON.stringify(value)) {
+            value = `[${typeof value}]`;
+        }
+        return value;
+    }
+)};
+
 const subscribers = {};
 
 const table = {
@@ -34,10 +106,8 @@ const table = {
     userAgent() { return window.navigator.userAgent; },
 
     dom: {
-        check(tabId, path, url=null) {
-            return executeInTab(tabId, [path, url], (path, url) => {
-                return (!url || window.location == url) && !!document.querySelector(path)
-            });
+        async check(...args) {
+            return (await executeInTab(this, 'dom.count', ...args)) > 0;
         },
         async wait(timeout, ...args) {
             const interval = 500;
@@ -49,62 +119,11 @@ const table = {
             }
             return false;
         },
-        _getAll(key, tabId, path, url=null) {
-            return executeInTab(tabId, [path, key, url], (path, key, url) => {
-                try {
-                    if (!url || window.location == url) {
-                        return Array.from(document.querySelectorAll(path)).map(x => x[key])
-                    }
-                } catch(e) {
-                    throw new Error(e);
-                }
-            });
-        },
-        _set(key, value, tabId, path, url=null) {
-            return executeInTab(tabId, [path, value, key, url], (path, value, key, url) => {
-                try {
-                    if (!url || window.location == url) {
-                        document.querySelector(path)[key] = value;
-                        return true;
-                    }
-                } catch(e) {
-                    throw new Error(e);
-                }
-            });
-        },
-        _call(key, tabId, path, url=null) {
-            return executeInTab(tabId, [path, key, url], (path, key, url) => {
-                try {
-                    if (!url || window.location == url) {
-                        return document.querySelector(path)[key]();
-                    }
-                } catch(e) {
-                    throw new Error(e);
-                }
-            });
-        },
-        innerHTML(...args) { return table.dom._getAll.bind(this)('innerHTML', ...args); },
-        innerText(...args) { return table.dom._getAll.bind(this)('innerText', ...args); },
-        outerHTML(...args) { return table.dom._getAll.bind(this)('outerHTML', ...args); },
-        nodeName(...args) { return table.dom._getAll.bind(this)('nodeName', ...args); },
-        value(...args) { return table.dom._getAll.bind(this)('value', ...args); },
-        setValue(...args) { return table.dom._set.bind(this)('value', ...args); },
-        focus(...args) { return table.dom._call.bind(this)('focus', ...args); },
-        click(...args) { return table.dom._call.bind(this)('click', ...args); },
-        submit(...args) { return table.dom._call.bind(this)('submit', ...args); },
-        attributes(tabId, path, url=null) {
-            return executeInTab(tabId, [path, url], (path, url) => {
-                if (!url || window.location == url) {
-                    return document.querySelectorAll(path).map(x => {
-                        const attributes = {};
-                        for (const attr of x.attributes) {
-                            attributes[attr.name] = attr.value;
-                        }
-                        return attributes;
-                    });
-                }
-            });
-        },
+        count(...args) { return executeInTab(this, 'dom.count', ...args); },
+        get(key, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, key, ...args); },
+        set(key, value, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, key, value, ...args); },
+        call(key, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, call, ...args); },
+        getAttributes(...args) { return executeInTab(this, 'dom.getAttributes', ...args); },
     },
 
     async subscribe(event, filter=null, numEvents=-1) {
@@ -169,7 +188,7 @@ const table = {
         opts.body = opts.body && atob(opts.body);
 
         if (opts.tabId) {
-            await executeInTab(opts.tabId, [this, url, opts, null], func);
+            await _executeInTab(opts.tabId, [this, url, opts, null], func);
 
         } else if (opts.cookieStoreId && opts.cookieStoreId != 'firefox-default') {
             const extUrl = browser.runtime.getURL("");
@@ -181,7 +200,7 @@ const table = {
                 // why do i need this
                 await new Promise((resolve, reject) => setTimeout(resolve, 10));
             }
-            await executeInTab(tab.id, [this, url, opts, null], func);
+            await _executeInTab(tab.id, [this, url, opts, null], func);
 
         } else {
             await func(this, url, opts, send);

@@ -316,6 +316,7 @@ class actions:
         if hasattr(args, 'id'):
             a.append(args.id)
 
+        props = {}
         if hasattr(args, 'props'):
             props = dict(x.partition('=')[::2] for x in args.props)
             props = {k: parse_maybe_json(v) for k, v in props.items()}
@@ -327,7 +328,8 @@ class actions:
         request = getattr(client, fn)(*a)
         if args.CMD == 'list':
             for x in (await request):
-                print(json.dumps(x), flush=True)
+                if all(x[k] == v for k, v in props.items()):
+                    print(json.dumps(x), flush=True)
         else:
             print(json.dumps(await request), flush=True)
 
@@ -404,6 +406,7 @@ def main():
 
     sub = subparsers.add_parser('list')
     sub.add_argument('type')
+    sub.add_argument('props', nargs='*', metavar='filter')
 
     sub = subparsers.add_parser('create')
     sub.add_argument('type')
