@@ -122,7 +122,7 @@ const table = {
         count(...args) { return executeInTab(this, 'dom.count', ...args); },
         get(key, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, key, ...args); },
         set(key, value, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, key, value, ...args); },
-        call(key, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, call, ...args); },
+        call(key, tabId, ...args) { return executeInTab(this, 'dom.call', tabId, key, ...args); },
         getAttributes(...args) { return executeInTab(this, 'dom.getAttributes', ...args); },
     },
 
