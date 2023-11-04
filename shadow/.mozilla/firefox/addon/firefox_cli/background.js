@@ -9,6 +9,10 @@ function send(msg, data) {
 }
 
 async function _executeInTab(tabId, args, func) {
+    if (tabId == 0) {
+        tabId = (await browser.tabs.query({active: true}))[0].id;
+    }
+
     const result = await browser.scripting.executeScript({
         injectImmediately: true,
         target: {tabId},
@@ -73,6 +77,11 @@ async function executeInTab(msg, fn, tabId, ...args) {
                     });
                 },
 
+                sendKey(key, ...args) {
+                    const nodes = args.length > 0 ? getNodes(...args) : [document];
+                    return nodes.map(x => x.dispatchEvent(new KeyboardEvent('keydown', {'key': key})));
+                },
+
             },
         };
 
@@ -124,6 +133,7 @@ const table = {
         set(key, value, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, key, value, ...args); },
         call(key, tabId, ...args) { return executeInTab(this, 'dom.call', tabId, key, ...args); },
         getAttributes(...args) { return executeInTab(this, 'dom.getAttributes', ...args); },
+        sendKey(key, tabId, ...args) { return executeInTab(this, 'dom.sendKey', tabId, key, ...args); },
     },
 
     async subscribe(event, filter=null, numEvents=-1) {
@@ -187,7 +197,7 @@ const table = {
 
         opts.body = opts.body && atob(opts.body);
 
-        if (opts.tabId) {
+        if ((opts.tabId ?? null) !== null) {
             await _executeInTab(opts.tabId, [this, url, opts, null], func);
 
         } else if (opts.cookieStoreId && opts.cookieStoreId != 'firefox-default') {
