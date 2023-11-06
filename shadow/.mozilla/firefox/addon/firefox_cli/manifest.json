@@ -33,6 +33,7 @@
         "tabHide",
         "activeTab",
         "webRequest",
+        "bookmarks",
         "cookies"
     ]
 
