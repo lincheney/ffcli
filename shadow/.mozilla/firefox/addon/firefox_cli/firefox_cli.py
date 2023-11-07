@@ -308,6 +308,7 @@ class actions:
             'browser.cookies.update': None,
             'browser.cookies.remove': None,
             'browser.bookmarks.query': 'browser.bookmarks.search',
+            'browser.windows.query': 'browser.windows.getAll',
         }.get(fn, fn)
         if fn is None:
             raise NotImplementedError(args.cmd + ' ' + args.type)
