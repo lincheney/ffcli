@@ -10,7 +10,7 @@ function send(msg, data) {
 
 async function _executeInTab(tabId, args, func) {
     if (tabId == 0) {
-        tabId = (await browser.tabs.query({active: true}))[0].id;
+        tabId = (await browser.tabs.query({active: true, currentWindow: true}))[0].id;
     }
 
     const result = await browser.scripting.executeScript({
