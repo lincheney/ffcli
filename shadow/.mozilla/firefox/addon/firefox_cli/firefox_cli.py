@@ -396,7 +396,19 @@ class actions:
 
     @with_client
     async def screenshot(client, args):
-        data = await client.browser.tabs.captureTab(args.tab)
+        kwargs = {'format': args.format, 'scale': args.scale}
+
+        if args.selector:
+            root_rect = (await client.dom.call(':root', 'getBoundingClientRect'))[0]
+            node_rect = (await client.dom.call(args.selector, 'getBoundingClientRect'))[0]
+            kwargs['rect'] = dict(
+                x=node_rect['x'] - root_rect['x'],
+                y=node_rect['y'] - root_rect['y'],
+                width=node_rect['width'],
+                height=node_rect['height'],
+            )
+
+        data = await client.browser.tabs.captureTab(args.tab, kwargs)
         data = base64.b64decode(data.partition(',')[2])
         if os.isatty(sys.stdout.fileno()):
             proc = subprocess.run(['imv', '-'], input=data)
@@ -465,6 +477,11 @@ def main():
 
     sub = subparsers.add_parser('screenshot')
     sub.add_argument('tab', type=int, nargs='?')
+    sub.add_argument('-f', '--format', choices=('jpeg', 'png'), default='png')
+    sub.add_argument('--scale', type=float)
+    group = sub.add_mutually_exclusive_group()
+    group.add_argument('-s', '--selector', help='Screenshot just this css selector')
+    group.add_argument('--full', dest='selector', action='store_const', const=':root', help='Screenshot full page')
 
     args = parser.parse_args()
     if not args.CMD:
