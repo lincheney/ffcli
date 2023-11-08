@@ -4,6 +4,7 @@ import sys
 import csv
 import time
 import ssl
+import subprocess
 import email.utils
 from types import SimpleNamespace
 from functools import partial
@@ -393,6 +394,15 @@ class actions:
         os.execvp(mitm[0], mitm)
         raise Exception('unreachable')
 
+    @with_client
+    async def screenshot(client, args):
+        data = await client.browser.tabs.captureTab(args.tab)
+        data = base64.b64decode(data.partition(',')[2])
+        if os.isatty(sys.stdout.fileno()):
+            proc = subprocess.run(['imv', '-'], input=data)
+            return proc.returncode
+        sys.stdout.buffer.write(data)
+
 async def async_main(args):
     return await getattr(actions, args.CMD.replace('-', '_'))(args)
 
@@ -452,6 +462,9 @@ def main():
     sub.add_argument('port', default=8080, type=int, nargs='?')
     sub.add_argument('--real-proxy', action='store_true')
     sub.add_argument('-c', '--container')
+
+    sub = subparsers.add_parser('screenshot')
+    sub.add_argument('tab', type=int, nargs='?')
 
     args = parser.parse_args()
     if not args.CMD:
