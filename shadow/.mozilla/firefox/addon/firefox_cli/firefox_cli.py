@@ -368,8 +368,10 @@ class actions:
             print('<', file=sys.stderr)
 
         if not args.fail:
+            file = open(args.output, 'wb') if args.output else sys.stdout.buffer
             while data := await response.read():
-                sys.stdout.buffer.write(data)
+                file.write(data)
+            file.close()
 
         if (args.fail or args.fail_with_body) and status >= 400:
             print('The requested URL returned error:', status, file=sys.stderr)
@@ -433,7 +435,7 @@ def main():
     sub.add_argument('-d', '--data')
     sub.add_argument('--data-raw', dest='data')
     sub.add_argument('-v', '--verbose', action='store_true')
-    sub.add_argument('--real-proxy', action='store_true')
+    sub.add_argument('-o', '--output')
     sub.add_argument('-L', '--location', action='store_true') # not implemented
     sub.add_argument('-s', '--silent', action='store_true') # not implemented
     sub.add_argument('-S', '--show-error', action='store_true') # not implemented
@@ -441,6 +443,7 @@ def main():
     group = sub.add_mutually_exclusive_group()
     group.add_argument('--fail', action='store_true')
     group.add_argument('--fail-with-body', action='store_true')
+    sub.add_argument('--real-proxy', action='store_true')
     group = sub.add_mutually_exclusive_group()
     group.add_argument('-c', '--container')
     group.add_argument('-t', '--tab', type=int)
