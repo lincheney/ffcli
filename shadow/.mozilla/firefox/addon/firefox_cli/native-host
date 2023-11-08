@@ -71,8 +71,12 @@ async def write_to_socket(writer, queue, requests):
         logging.info('got reply: %r', item)
         if item.get('type') == 'complete':
             requests.remove(item.get('id'))
-        writer.write(json.dumps(item).encode('utf8') + b'\n')
-        await writer.drain()
+        try:
+            writer.write(json.dumps(item).encode('utf8') + b'\n')
+            await writer.drain()
+        except ConnectionResetError:
+            logging.info('connection closed')
+            return
 
 async def read_from_socket(reader, id, queue, requests):
     try:
