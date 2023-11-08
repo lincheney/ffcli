@@ -104,6 +104,8 @@ async function executeInTab(msg, fn, tabId, ...args) {
         }
         if (value && !JSON.stringify(value)) {
             value = `[${typeof value}]`;
+        } else if (typeof value === 'object' && value.__proto__ !== Object.prototype) {
+            value = JSON.parse(JSON.stringify(value));
         }
         return value;
     }
@@ -120,25 +122,28 @@ const table = {
     userAgent() { return window.navigator.userAgent; },
 
     dom: {
-        async check(...args) {
-            return (await executeInTab(this, 'dom.count', ...args)) > 0;
+        _do(fn, path, args, {tabId=0, ...rest}={}) {
+            return executeInTab(this, fn, tabId, ...args, path, rest);
         },
-        async wait(timeout, ...args) {
+        async check(path, args) {
+            return (await table.dom._do('dom.count', path, [], args)) > 0;
+        },
+        async wait(path, {timeout=0, ...args}={}) {
             const interval = 500;
             for (let elapsed = 0; !timeout || elapsed < timeout; elapsed += interval) {
-                if (await table.dom.check(...args)) {
+                if (await table.dom.check(path, args)) {
                     return true;
                 }
                 await new Promise(resolve => setTimeout(resolve, interval));
             }
             return false;
         },
-        count(...args) { return executeInTab(this, 'dom.count', ...args); },
-        get(key, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, key, ...args); },
-        set(key, value, tabId, ...args) { return executeInTab(this, 'dom.get', tabId, key, value, ...args); },
-        call(key, tabId, ...args) { return executeInTab(this, 'dom.call', tabId, key, ...args); },
-        getAttributes(...args) { return executeInTab(this, 'dom.getAttributes', ...args); },
-        sendKey(key, tabId, ...args) { return executeInTab(this, 'dom.sendKey', tabId, key, ...args); },
+        count(path, args) { return table.dom._do('dom.count', path, [], args); },
+        get(path, key, args) { return table.dom._do('dom.get', path, [key], args); },
+        set(path, key, value, args) { return table.dom._do('dom.set', path, [key, value], args); },
+        call(path, key, args) { return table.dom._do('dom.call', path, [key], args); },
+        getAttributes(path, args) { return table.dom._do('dom.getAttributes', path, [], args); },
+        sendKey(path, key, args) { return table.dom._do('dom.sendKey', path, [key], args); },
     },
 
     async subscribe(event, filter=null, numEvents=-1) {
