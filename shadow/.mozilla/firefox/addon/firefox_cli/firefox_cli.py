@@ -409,6 +409,9 @@ class actions:
                 width=node_rect['width'],
                 height=node_rect['height'],
             )
+            if kwargs['rect']['width'] * kwargs['rect']['height'] == 0:
+                print(repr(args.selector), 'is not visible', file=sys.stderr)
+                return 1
 
         data = await client.browser.tabs.captureTab(args.tab, kwargs)
         data = base64.b64decode(data.partition(',')[2])
