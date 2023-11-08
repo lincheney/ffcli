@@ -225,7 +225,7 @@ const table = {
             fetch_tabs[tab.id] = Date.now();
             (async () => {
                 const tabId = tab.id;
-                const tabTimeout = 5 * 1000;
+                const tabTimeout = 60 * 1000;
                 while (true) {
                     if (!done) {
                         // keepalive
