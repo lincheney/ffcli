@@ -181,11 +181,10 @@ class Client:
         while line := await reader.readline():
             if (data := parse_json_object(line)) is not None:
                 if queue := self.queues.get(data.get('id')):
-                    if data.get('type') == 'complete':
+                    await queue.put(data)
+                    if data.get('complete'):
                         await queue.put(None)
                         self.queues.pop(data.get('id'))
-                    else:
-                        await queue.put(data)
 
     async def _execute(self, fn, *args):
         self.id += 1

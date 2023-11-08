@@ -281,6 +281,7 @@ port.onMessage.addListener((msg) => {
         let { fn, args } = msg;
         delete msg.fn;
         delete msg.args;
+        delete msg.complete;
         try {
             const func = resolve_function(fn);
             if (typeof func != 'function') {
@@ -307,9 +308,7 @@ port.onMessage.addListener((msg) => {
                 msg.data.stack = [e.fileName];
             }
         } finally {
-            port.postMessage(msg);
-            delete msg.data;
-            msg.type = 'complete';
+            msg.complete = true;
             port.postMessage(msg);
         }
     })();

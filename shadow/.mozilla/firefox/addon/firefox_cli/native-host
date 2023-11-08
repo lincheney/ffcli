@@ -69,7 +69,7 @@ async def write_to_socket(writer, queue, requests):
 
             continue
         logging.info('got reply: %r', item)
-        if item.get('type') == 'complete':
+        if item.get('complete'):
             requests.remove(item.get('id'))
         try:
             writer.write(json.dumps(item).encode('utf8') + b'\n')
