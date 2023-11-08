@@ -198,28 +198,26 @@ class Client:
     def __getattr__(self, key):
         return RequestBuilder(self, key)
 
-    async def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, follow_redirect=False, **kwargs):
+    async def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
         return Fetch(self, url, {
             'method': method,
             'headers': headers,
             'body': base64.b64encode(body).decode('utf8') or None,
-            'redirect': 'follow' if follow_redirect else 'manual',
             'cookieStoreId': store_id,
             **kwargs
         })
 
-    async def fake_fetch(self, url, method='GET', headers=(), body=b'', follow_redirect=False, store_id=None):
+    async def fake_fetch(self, url, method='GET', headers=(), body=b'', store_id=None):
         loop = asyncio.get_event_loop()
 
         cookie_list = await self.browser.cookies.getAll({'url': url, 'storeId': store_id})
         user_agent = await self.userAgent()
 
-        opener = urllib.request.build_opener() if follow_redirect else urllib.request.build_opener(NoRedirect)
         request = urllib.request.Request(url, method=method, headers=headers, data=body)
         request.headers['user-agent'] = user_agent
         request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
         try:
-            response = await loop.run_in_executor(None, partial(opener.open, request))
+            response = await loop.run_in_executor(None, partial(urllib.urlopen, request))
         except urllib.error.HTTPError as e:
             response = e
 
@@ -356,7 +354,6 @@ class actions:
             headers=headers,
             body=(args.data or '').encode('utf8'),
             store_id=store_id,
-            follow_redirect=args.location,
         )
         if args.real_proxy:
             response = await client.fetch(tabId=args.tab, **kwargs)
@@ -435,9 +432,9 @@ def main():
     sub.add_argument('-H', '--header', default=[], action='append')
     sub.add_argument('-d', '--data')
     sub.add_argument('--data-raw', dest='data')
-    sub.add_argument('-L', '--location', action='store_true')
     sub.add_argument('-v', '--verbose', action='store_true')
     sub.add_argument('--real-proxy', action='store_true')
+    sub.add_argument('-L', '--location', action='store_true') # not implemented
     sub.add_argument('-s', '--silent', action='store_true') # not implemented
     sub.add_argument('-S', '--show-error', action='store_true') # not implemented
     sub.add_argument('--compressed', action='store_true') # not implemented
