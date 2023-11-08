@@ -352,9 +352,9 @@ class actions:
 
         kwargs = dict(
             url=args.url,
-            method=args.method,
+            method=args.method or ('GET' if args.data is None else 'POST'),
             headers=headers,
-            body=args.data.encode('utf8'),
+            body=(args.data or '').encode('utf8'),
             store_id=store_id,
             follow_redirect=args.location,
         )
@@ -431,12 +431,16 @@ def main():
 
     sub = subparsers.add_parser('curl')
     sub.add_argument('url')
-    sub.add_argument('-X', '--method', '--request', default='GET')
+    sub.add_argument('-X', '--method', '--request')
     sub.add_argument('-H', '--header', default=[], action='append')
-    sub.add_argument('-d', '--data', default='')
+    sub.add_argument('-d', '--data')
+    sub.add_argument('--data-raw', dest='data')
     sub.add_argument('-L', '--location', action='store_true')
     sub.add_argument('-v', '--verbose', action='store_true')
     sub.add_argument('--real-proxy', action='store_true')
+    sub.add_argument('-s', '--silent', action='store_true') # not implemented
+    sub.add_argument('-S', '--show-error', action='store_true') # not implemented
+    sub.add_argument('--compressed', action='store_true') # not implemented
     group = sub.add_mutually_exclusive_group()
     group.add_argument('--fail', action='store_true')
     group.add_argument('--fail-with-body', action='store_true')
