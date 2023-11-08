@@ -4,6 +4,10 @@ function resolve_function(string) {
     return (string || '').split('.').reduce((x, y) => x && x[y], table);
 }
 
+function sleep(timeout) {
+    return new Promise(resolve => setTimeout(resolve, timeout))
+}
+
 function send(msg, data) {
     return port.postMessage({...msg, type: 'data', data});
 }
@@ -106,6 +110,7 @@ async function executeInTab(msg, fn, tabId, ...args) {
 )};
 
 const subscribers = {};
+const fetch_tabs = {};
 
 const table = {
     status() { return true; },
@@ -197,13 +202,52 @@ const table = {
             const extUrl = browser.runtime.getURL("");
             const tabs = (await browser.tabs.query({cookieStoreId: opts.cookieStoreId})).filter(tab => tab.url.startsWith(extUrl));
             let tab = tabs.length > 0 ? tabs[0] : null;
+            let newtab;
             if (!tab) {
-                tab = await browser.tabs.create({cookieStoreId: opts.cookieStoreId, active: false, url: browser.runtime.getURL("background.js")});
-                await browser.tabs.hide(tab.id);
-                // why do i need this
-                await new Promise((resolve, reject) => setTimeout(resolve, 10));
+                let resolver;
+                const promise = new Promise(resolve => {resolver = resolve;});
+                const listener = (tabId, changeInfo, tab) => {
+                    if (tabId == newtab.id && tab.status === 'complete') {
+                        resolver();
+                    }
+                };
+                browser.tabs.onUpdated.addListener(listener, {properties: ['status']});
+                newtab = await browser.tabs.create({cookieStoreId: opts.cookieStoreId, active: false, url: browser.runtime.getURL("null")});
+                await browser.tabs.hide(newtab.id);
+                await promise;
+                browser.tabs.onUpdated.removeListener(listener);
+                tab = newtab;
             }
-            await _executeInTab(tab.id, [this, url, opts, null], func);
+
+            // run a keepalive on the tab while not done
+            // then close the time after an inactive timeout
+            let done = false;
+            fetch_tabs[tab.id] = Date.now();
+            (async () => {
+                const tabId = tab.id;
+                const tabTimeout = 5 * 1000;
+                while (true) {
+                    if (!done) {
+                        // keepalive
+                        fetch_tabs[tabId] = Date.now();
+                    } else if (!newtab) {
+                        // someone else is tracking this tab
+                        break;
+                    } else if (Date.now() >= fetch_tabs[tabId] + tabTimeout) {
+                        // close
+                        delete fetch_tabs[tabId];
+                        await browser.tabs.remove(tabId);
+                        break;
+                    }
+                    await sleep(tabTimeout);
+                }
+            })();
+
+            try {
+                await _executeInTab(tab.id, [this, url, opts, null], func);
+            } finally {
+                done = true;
+            }
 
         } else {
             await func(this, url, opts, send);
