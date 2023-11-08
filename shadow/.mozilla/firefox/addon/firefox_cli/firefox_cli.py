@@ -217,7 +217,7 @@ class Client:
         request.headers['user-agent'] = user_agent
         request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
         try:
-            response = await loop.run_in_executor(None, partial(urllib.urlopen, request))
+            response = await loop.run_in_executor(None, partial(urllib.request.urlopen, request))
         except urllib.error.HTTPError as e:
             response = e
 
