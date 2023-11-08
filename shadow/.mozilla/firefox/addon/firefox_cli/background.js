@@ -171,13 +171,6 @@ const table = {
         delete subs[subid];
     },
 
-    tabs: {
-        async onUpdated(filter) {
-            const listener = (tabId, changeInfo, tab) => send(this, {tabId, changeInfo, tab});
-            browser.tabs.onUpdated.addListener(listener, filter);
-        },
-    },
-
     async fetch(url, opts={}) {
         const func = async (msg, url, opts, send) => {
             send = send ?? ((msg, data) => browser.runtime.sendMessage({...msg, type: 'data', data}));
