@@ -18,6 +18,7 @@ import argparse
 import asyncio
 import json
 import logging
+import socket
 import base64
 import ruamel.yaml
 
@@ -44,6 +45,11 @@ def parse_maybe_json(data):
     except ruamel.yaml.error.YAMLError:
         pass
     return data
+
+def get_free_port():
+    with socket.socket() as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args):
@@ -377,7 +383,7 @@ class actions:
             print('The requested URL returned error:', status, file=sys.stderr)
             return 22
 
-    async def http_proxy(args):
+    def _http_proxy_args(args):
         mitm = [
             'mitmdump',
             '--listen-port', str(args.port),
@@ -390,8 +396,36 @@ class actions:
             mitm += ['--set', 'firefox_real_proxy=true']
         if args.container:
             mitm += ['--set', 'firefox_container='+args.container]
+        return mitm
+
+    async def http_proxy(args):
+        mitm = actions._http_proxy_args(args)
         os.execvp(mitm[0], mitm)
         raise Exception('unreachable')
+
+    async def with_http_proxy(args):
+        args.port = args.port or get_free_port()
+        mitm = actions._http_proxy_args(args)
+        with subprocess.Popen(mitm) as proc:
+            # wait to connect
+            sock =  socket.socket()
+            while result := sock.connect_ex(('127.0.0.1', args.port)):
+                time.sleep(1)
+            sock.close()
+
+            proxy = f'127.0.0.1:{args.port}'
+            env = {
+                **os.environ,
+                'http_proxy': proxy,
+                'https_proxy': proxy,
+                'HTTP_PROXY': proxy,
+                'HTTPS_PROXY': proxy,
+                'CURL_CA_BUNDLE': os.path.expanduser('~/.mitmproxy/mitmproxy-ca.pem'),
+            }
+
+            code = subprocess.call(args.args, env=env)
+            proc.terminate()
+        return code
 
     @with_client
     async def screenshot(client, args):
@@ -478,7 +512,15 @@ def main():
     sub = subparsers.add_parser('http-proxy')
     sub.add_argument('port', default=8080, type=int, nargs='?')
     sub.add_argument('--real-proxy', action='store_true')
-    sub.add_argument('-c', '--container')
+    group = sub.add_mutually_exclusive_group()
+    group.add_argument('-c', '--container')
+
+    sub = subparsers.add_parser('with-http-proxy')
+    sub.add_argument('args', nargs='+')
+    sub.add_argument('-p', '--port', type=int)
+    sub.add_argument('--real-proxy', action='store_true')
+    group = sub.add_mutually_exclusive_group()
+    group.add_argument('-c', '--container')
 
     sub = subparsers.add_parser('screenshot')
     sub.add_argument('tab', type=int, nargs='?')
