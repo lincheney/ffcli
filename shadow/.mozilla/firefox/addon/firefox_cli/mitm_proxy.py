@@ -6,7 +6,7 @@ from mitmproxy.net.http import cookies
 from mitmproxy import ctx
 from typing import Optional
 
-from client import Client
+from firefox_cli import Client
 
 sep = '-'*50
 
@@ -22,7 +22,7 @@ def configure(updates):
     if 'firefox_profile_dir' in updates:
         if client:
             asyncio.ensure_future(client.stop())
-        client = Client(ctx.options.firefox_profile_dir)
+        client = Client.from_profile(ctx.options.firefox_profile_dir)
     if 'firefox_container' in updates:
         store_id = None
 
