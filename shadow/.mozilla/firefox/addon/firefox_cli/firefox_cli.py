@@ -410,6 +410,9 @@ class actions:
             # wait to connect
             sock =  socket.socket()
             while result := sock.connect_ex(('127.0.0.1', args.port)):
+                if proc.poll() is not None:
+                    print('Failed to start proxy', file=sys.stderr)
+                    return proc.returncode or 1
                 time.sleep(1)
             sock.close()
 
