@@ -383,7 +383,7 @@ class actions:
             print('The requested URL returned error:', status, file=sys.stderr)
             return 22
 
-    def _http_proxy_args(args):
+    def _http_proxy_args(args, *mitm_args):
         mitm = [
             'mitmdump',
             '--listen-port', str(args.port),
@@ -391,6 +391,7 @@ class actions:
             '--set', 'stream_large_bodies=0',
             '--set', 'firefox_profile_dir='+args.profile,
             '--scripts', os.path.join(os.path.dirname(os.path.realpath(__file__)), 'mitm_proxy.py'),
+            *mitm_args,
         ]
         if args.real_proxy:
             mitm += ['--set', 'firefox_real_proxy=true']
@@ -405,7 +406,7 @@ class actions:
 
     async def with_http_proxy(args):
         args.port = args.port or get_free_port()
-        mitm = actions._http_proxy_args(args)
+        mitm = actions._http_proxy_args(args, '--quiet')
         with subprocess.Popen(mitm) as proc:
             # wait to connect
             sock =  socket.socket()
