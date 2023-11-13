@@ -12,6 +12,8 @@ sep = '-'*50
 
 client = None
 store_id = None
+user_agent = None
+REDIRECTS = {}
 
 def done():
     if client:
@@ -40,15 +42,21 @@ def load(loader):
         help="Really proxy requests through firefox",
     )
     loader.add_option(
+        name="firefox_real_ua",
+        typespec=bool,
+        default=False,
+        help="Use real user agent from inside a tab",
+    )
+    loader.add_option(
         name="firefox_container",
         typespec=Optional[str],
         default=None,
         help="Firefox container",
     )
 
-
 async def request(flow):
     global store_id
+    global user_agent
 
     try:
         await client.start()
@@ -58,14 +66,39 @@ async def request(flow):
         flow.metadata['firefox_real_proxy'] = ctx.options.firefox_real_proxy
         flow.metadata['firefox_store_id'] = store_id
 
-        if ctx.options.firefox_real_proxy:
-            response = client.fetch(flow.request.url, {
-                'method': flow.request.method,
-                'headers': dict(flow.request.headers.items()),
-                'body': base64.b64encode(flow.request.content).decode('utf8') or None,
-                'redirect': 'manual',
-                'cookieStoreId': store_id,
-            })
+        # fetching the user agent can be expensive
+        user_agent = user_agent or await client.get_user_agent(real=ctx.options.firefox_real_ua)
+        flow.request.headers['user-agent'] = user_agent
+
+        if not ctx.options.firefox_real_proxy:
+            cookie_list = await client.browser.cookies.getAll({'url': flow.request.url, 'storeId': store_id})
+            #  user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
+            flow.request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
+            flow.request.headers['user-agent'] = user_agent
+            #  print(flow.request.headers)
+
+        else:
+            if 'user-agent' in flow.request.headers:
+                del flow.request.headers['user-agent']
+
+            if response := REDIRECTS.pop(flow.request.url, None):
+                pass
+            else:
+                response = await client.fetch(
+                    flow.request.url,
+                    method = flow.request.method,
+                    headers = dict(flow.request.headers.items()),
+                    body = flow.request.content or b'',
+                    cookieStoreId = store_id,
+                )
+
+                if redirected := await response.redirected():
+                    # need to do a redirect
+                    url = await response.url()
+                    REDIRECTS[url] = response
+                    flow.response = Response.make(302, b'', {'Location': url})
+                    return
+
             body = b''
             while data := await response.read():
                 body += data
@@ -75,11 +108,6 @@ async def request(flow):
                 body,
                 await response.headers(),
             )
-        else:
-            cookie_list = await client.browser.cookies.getAll({'url': flow.request.url, 'storeId': store_id})
-            user_agent = await client.userAgent()
-            flow.request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
-            flow.request.headers['user-agent'] = user_agent
     except:
         flow.response = Response.make(503)
         raise

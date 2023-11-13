@@ -2,6 +2,7 @@
 
 import sys
 import csv
+import re
 import time
 import ssl
 import subprocess
@@ -51,20 +52,17 @@ def get_free_port():
         s.bind(("", 0))
         return s.getsockname()[1]
 
-class NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, *args):
-        return
-
 class Response:
     def __init__(self, client, fn, args):
-        self.client = client
-        self.fn = fn
-        self.args = args
         self.queue = None
+        self.task = asyncio.create_task(client._execute(fn, *args))
 
     async def get_queue(self):
-        self.queue = self.queue or await self.client._execute(self.fn, *self.args)
+        self.queue = self.queue or await self.task
         return self.queue
+
+    def get_one(self):
+        return anext(aiter(self.iter()))
 
     async def iter(self):
         queue = await self.get_queue()
@@ -100,38 +98,61 @@ class RequestBuilder:
         return Response(self.client, self.key, args)
 
 class Fetch(Response):
+    _response_fields = {'status', 'headers', 'url', 'redirected'}
+
     def __init__(self, client, *args):
         super().__init__(client, 'fetch', args)
-        self._status = None
-        self._headers = None
+        self._response = {}
 
     async def iter(self):
         async for data in super().iter():
             if isinstance(data, dict):
-                if 'status' in data:
-                    self._status = data['status']
-                if 'headers' in data:
-                    self._headers = data['headers']
+                for k in self._response_fields:
+                    if k in data:
+                        self._response[k] = data[k]
             yield data
 
-    def read_one(self):
-        return anext(aiter(self.iter()))
+    async def get_cached_field(self, key):
+        while key not in self._response:
+            await self.get_one()
+        return self._response[key]
 
-    async def status(self):
-        while self._status is None:
-            await self.read_one()
-        return self._status
-
-    async def headers(self):
-        while self._headers is None:
-            await self.read_one()
-        return self._headers
+    def status(self):
+        return self.get_cached_field('status')
+    def headers(self):
+        return self.get_cached_field('headers')
+    def url(self):
+        return self.get_cached_field('url')
+    def redirected(self):
+        return self.get_cached_field('redirected')
 
     async def read(self):
         async for data in self.iter():
             if isinstance(data, dict) and 'body' in data:
                 return base64.b64decode(data['body'])
         return b''
+
+class Subscription(Response):
+    def __init__(self, client, *args):
+        super().__init__(client, 'subscribe', args)
+        self._id = None
+
+    async def id(self):
+        while self._id is None:
+            await self.get_one()
+        return self._id
+
+    async def events(self):
+        await self.id()
+        async for data in self.iter():
+            if data is not None:
+                yield data
+
+    async def iter(self):
+        async for data in super().iter():
+            if self._id is None:
+                self._id = data['subscriptionId']
+            yield data
 
 class Client:
     @classmethod
@@ -204,6 +225,9 @@ class Client:
     def __getattr__(self, key):
         return RequestBuilder(self, key)
 
+    async def subscribe(self, event, num_events=-1, **kwargs):
+        return Subscription(self, event, kwargs, num_events)
+
     async def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
         return Fetch(self, url, {
             'method': method,
@@ -213,11 +237,11 @@ class Client:
             **kwargs
         })
 
-    async def fake_fetch(self, url, method='GET', headers=(), body=b'', store_id=None):
+    async def fake_fetch(self, url, method='GET', headers=(), body=b'', store_id=None, real_ua=False):
         loop = asyncio.get_event_loop()
 
         cookie_list = await self.browser.cookies.getAll({'url': url, 'storeId': store_id})
-        user_agent = await self.userAgent()
+        user_agent = await self.get_user_agent(real=real_ua)
 
         request = urllib.request.Request(url, method=method, headers=headers, data=body)
         request.headers['user-agent'] = user_agent
@@ -284,6 +308,34 @@ class Client:
             read=body.get,
         )
 
+    async def get_user_agent(self, real=False, tab=None, url='https://google.com/404'):
+        close_tab = False
+
+        if real:
+            tabs = await self.browser.tabs.query(discarded=False)
+            # try to find a tab that is accessible
+            for tab in tabs:
+                if tab['url'].startswith('http') and not re.search('mozilla.net$|firefox.com$|mozilla.org$', tab['url']):
+                    tab = tab['id']
+                    break
+
+            if not tab:
+                # need to temporarily make a tab
+                tab = await self.browser.tabs.create({})
+                close_tab = tab = tab['id']
+                await self.browser.tabs.hide(tab)
+                # wait for it to load
+                sub = await self.subscribe('browser.tabs.onUpdated', tabId=tab, properties=['url'], num_events=1)
+                await self.browser.tabs.update(tab, url=url)
+                async for x in sub.events():
+                    pass
+
+        try:
+            return await self.userAgent(tab)
+        finally:
+            if close_tab:
+                await self.browser.tabs.remove(close_tab)
+
 def with_client(fn):
     async def wrapped(args):
         async with Client.from_profile(args.profile) as client:
@@ -346,6 +398,10 @@ class actions:
     delete = _crud
 
     @with_client
+    async def user_agent(client, args, url='https://google.com/404'):
+        print(await client.get_user_agent(real=args.real, tab=args.tab))
+
+    @with_client
     async def curl(client, args):
         headers = dict(h.partition(': ')[::2] for h in args.header)
         store_id = None
@@ -360,6 +416,7 @@ class actions:
             headers=headers,
             body=(args.data or '').encode('utf8'),
             store_id=store_id,
+            real_ua=args.real_ua,
         )
         if args.real_proxy:
             response = await client.fetch(tabId=args.tab, **kwargs)
@@ -388,13 +445,15 @@ class actions:
             'mitmdump',
             '--listen-port', str(args.port),
             '--set', 'connection_strategy=lazy',
-            '--set', 'stream_large_bodies=0',
+            # '--set', 'stream_large_bodies=0',
             '--set', 'firefox_profile_dir='+args.profile,
             '--scripts', os.path.join(os.path.dirname(os.path.realpath(__file__)), 'mitm_proxy.py'),
             *mitm_args,
         ]
         if args.real_proxy:
             mitm += ['--set', 'firefox_real_proxy=true']
+        if args.real_ua:
+            mitm += ['--set', 'firefox_real_ua=true']
         if args.container:
             mitm += ['--set', 'firefox_container='+args.container]
         return mitm
@@ -406,29 +465,31 @@ class actions:
 
     async def with_http_proxy(args):
         args.port = args.port or get_free_port()
-        mitm = actions._http_proxy_args(args, '--quiet')
+        mitm = actions._http_proxy_args(args)#, '--quiet')
         with subprocess.Popen(mitm) as proc:
-            # wait to connect
-            sock =  socket.socket()
-            while result := sock.connect_ex(('127.0.0.1', args.port)):
-                if proc.poll() is not None:
-                    print('Failed to start proxy', file=sys.stderr)
-                    return proc.returncode or 1
-                time.sleep(1)
-            sock.close()
+            try:
+                # wait to connect
+                sock =  socket.socket()
+                while result := sock.connect_ex(('127.0.0.1', args.port)):
+                    if proc.poll() is not None:
+                        print('Failed to start proxy', file=sys.stderr)
+                        return proc.returncode or 1
+                    time.sleep(1)
+                sock.close()
 
-            proxy = f'127.0.0.1:{args.port}'
-            env = {
-                **os.environ,
-                'http_proxy': proxy,
-                'https_proxy': proxy,
-                'HTTP_PROXY': proxy,
-                'HTTPS_PROXY': proxy,
-                'CURL_CA_BUNDLE': os.path.expanduser('~/.mitmproxy/mitmproxy-ca.pem'),
-            }
+                proxy = f'127.0.0.1:{args.port}'
+                env = {
+                    **os.environ,
+                    'http_proxy': proxy,
+                    'https_proxy': proxy,
+                    'HTTP_PROXY': proxy,
+                    'HTTPS_PROXY': proxy,
+                    'CURL_CA_BUNDLE': os.path.expanduser('~/.mitmproxy/mitmproxy-ca.pem'),
+                }
 
-            code = subprocess.call(args.args, env=env)
-            proc.terminate()
+                code = subprocess.call(args.args, env=env)
+            finally:
+                proc.terminate()
         return code
 
     @with_client
@@ -493,6 +554,11 @@ def main():
 
     sub = subparsers.add_parser('status')
 
+    sub = subparsers.add_parser('user-agent')
+    group = sub.add_mutually_exclusive_group()
+    group.add_argument('--real', action='store_true')
+    group.add_argument('--tab', type=int)
+
     sub = subparsers.add_parser('curl')
     sub.add_argument('url')
     sub.add_argument('-X', '--method', '--request')
@@ -509,6 +575,7 @@ def main():
     group.add_argument('--fail', action='store_true')
     group.add_argument('--fail-with-body', action='store_true')
     sub.add_argument('--real-proxy', action='store_true')
+    sub.add_argument('--real-ua', action='store_true')
     group = sub.add_mutually_exclusive_group()
     group.add_argument('-c', '--container')
     group.add_argument('-t', '--tab', type=int)
@@ -523,6 +590,7 @@ def main():
     sub.add_argument('args', nargs='+')
     sub.add_argument('-p', '--port', type=int)
     sub.add_argument('--real-proxy', action='store_true')
+    sub.add_argument('--real-ua', action='store_true')
     group = sub.add_mutually_exclusive_group()
     group.add_argument('-c', '--container')
 

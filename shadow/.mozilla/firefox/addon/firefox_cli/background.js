@@ -48,6 +48,8 @@ async function executeInTab(msg, fn, tabId, ...args) {
         }
 
         const table = {
+            userAgent() { return window.navigator.userAgent; },
+
             dom: {
 
                 get(key, ...args) {
@@ -119,7 +121,12 @@ const table = {
 
     browser,
 
-    userAgent() { return window.navigator.userAgent; },
+    userAgent(tabId=null) {
+        if (tabId) {
+            return executeInTab(this, 'userAgent', tabId)
+        }
+        return window.navigator.userAgent;
+    },
 
     dom: {
         _do(fn, path, args, {tabId=0, ...rest}={}) {
@@ -188,7 +195,12 @@ const table = {
 
             const headers = {};
             resp.headers.forEach((value, key) => { headers[key] = value; });
-            send(msg, {status: resp.status, headers});
+            send(msg, {
+                status: resp.status,
+                headers,
+                url: resp.url,
+                redirected: resp.redirected,
+            });
 
             const body = resp.body?.getReader();
             while (body) {
