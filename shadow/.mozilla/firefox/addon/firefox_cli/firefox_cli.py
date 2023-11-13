@@ -456,6 +456,10 @@ class actions:
             mitm += ['--set', 'firefox_real_ua=true']
         if args.container:
             mitm += ['--set', 'firefox_container='+args.container]
+        for host in args.ignore_hosts or ():
+            mitm += ['--ignore-hosts', host]
+        for host in args.allow_hosts or ():
+            mitm += ['--allow-hosts', host]
         return mitm
 
     async def http_proxy(args):
@@ -588,6 +592,9 @@ def main():
     sub.add_argument('--real-proxy', action='store_true')
     sub.add_argument('--real-ua', action='store_true')
     group = sub.add_mutually_exclusive_group()
+    group.add_argument('--ignore-hosts', action='append')
+    group.add_argument('--allow-hosts', action='append')
+    group = sub.add_mutually_exclusive_group()
     group.add_argument('-c', '--container')
 
     sub = subparsers.add_parser('with-http-proxy')
@@ -595,6 +602,9 @@ def main():
     sub.add_argument('-p', '--port', type=int)
     sub.add_argument('--real-proxy', action='store_true')
     sub.add_argument('--real-ua', action='store_true')
+    group = sub.add_mutually_exclusive_group()
+    group.add_argument('--ignore-hosts', action='append')
+    group.add_argument('--allow-hosts', action='append')
     group = sub.add_mutually_exclusive_group()
     group.add_argument('-c', '--container')
 
