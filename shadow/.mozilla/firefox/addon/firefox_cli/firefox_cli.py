@@ -478,13 +478,16 @@ class actions:
                 sock.close()
 
                 proxy = f'127.0.0.1:{args.port}'
+                cert = os.path.expanduser('~/.mitmproxy/mitmproxy-ca.pem')
                 env = {
                     **os.environ,
                     'http_proxy': proxy,
                     'https_proxy': proxy,
                     'HTTP_PROXY': proxy,
                     'HTTPS_PROXY': proxy,
-                    'CURL_CA_BUNDLE': os.path.expanduser('~/.mitmproxy/mitmproxy-ca.pem'),
+                    'CURL_CA_BUNDLE': cert,
+                    'AWS_CA_BUNDLE': cert,
+                    'SSL_CERT_FILE': cert,
                 }
 
                 code = subprocess.call(args.args, env=env)
@@ -583,6 +586,7 @@ def main():
     sub = subparsers.add_parser('http-proxy')
     sub.add_argument('port', default=8080, type=int, nargs='?')
     sub.add_argument('--real-proxy', action='store_true')
+    sub.add_argument('--real-ua', action='store_true')
     group = sub.add_mutually_exclusive_group()
     group.add_argument('-c', '--container')
 
