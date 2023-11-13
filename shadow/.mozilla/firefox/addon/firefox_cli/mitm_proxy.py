@@ -72,10 +72,8 @@ async def request(flow):
 
         if not ctx.options.firefox_real_proxy:
             cookie_list = await client.browser.cookies.getAll({'url': flow.request.url, 'storeId': store_id})
-            #  user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
             flow.request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
             flow.request.headers['user-agent'] = user_agent
-            #  print(flow.request.headers)
 
         else:
             if 'user-agent' in flow.request.headers:
