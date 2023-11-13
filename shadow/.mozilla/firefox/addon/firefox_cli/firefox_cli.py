@@ -469,7 +469,7 @@ class actions:
 
     async def with_http_proxy(args):
         args.port = args.port or get_free_port()
-        mitm = actions._http_proxy_args(args)#, '--quiet')
+        mitm = actions._http_proxy_args(args, '--quiet')
         with subprocess.Popen(mitm) as proc:
             try:
                 # wait to connect
