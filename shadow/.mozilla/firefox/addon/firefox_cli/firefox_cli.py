@@ -40,8 +40,7 @@ def parse_maybe_json(data):
     cjson = json.dumps(c).strip('"')
     try:
         safe = data.replace('#', c)
-        data = yaml.YAML(typ='safe', pure=True).load_all(safe):
-        data = ruamel.yaml.safe_load(safe)
+        data = yaml.YAML(typ='safe', pure=True).load_all(safe)
         data = json.dumps(data).replace(cjson, '#')
         data = json.loads(data)
     except ruamel.yaml.error.YAMLError:
