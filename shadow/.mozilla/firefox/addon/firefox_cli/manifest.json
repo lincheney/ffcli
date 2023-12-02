@@ -21,21 +21,63 @@
         "extension_pages": "default-src *; script-src *"
     },
 
-    "host_permissions": [
+    "optional_host_permissions": [
         "<all_urls>"
     ],
 
     "permissions": [
-        "nativeMessaging",
+        "alarms",
+        "background",
+        "contentSettings",
         "contextualIdentities",
-        "scripting",
-        "tabs",
-        "tabHide",
+        "debugger",
+        "downloads",
+        "downloads.open",
+        "find",
+        "identity",
+        "menus",
+        "menus.overrideContext",
+        "nativeMessaging",
+        "pageCapture",
+        "privacy",
+        "storage",
+        "theme"
+    ],
+
+    "optional_permissions": [
         "activeTab",
-        "webRequest",
         "bookmarks",
+        "browserSettings",
+        "browsingData",
+        "captivePortal",
+        "clipboardRead",
+        "clipboardWrite",
+        "contextMenus",
+        "cookies",
+        "declarativeNetRequest",
+        "declarativeNetRequestFeedback",
+        "declarativeNetRequestWithHostAccess",
+        "devtools",
+        "dns",
+        "geolocation",
+        "history",
+        "idle",
         "management",
-        "cookies"
+        "notifications",
+        "pkcs11",
+        "proxy",
+        "scripting",
+        "search",
+        "sessions",
+        "storage",
+        "tabHide",
+        "tabs",
+        "topSites",
+        "webNavigation",
+        "webRequest",
+        "webRequestBlocking",
+        "webRequestFilterResponse",
+        "webRequestFilterResponse.serviceWorkerScript"
     ]
 
 }
