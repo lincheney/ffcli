@@ -6,7 +6,6 @@ import sys
 import asyncio
 import json
 import logging
-# logging.basicConfig(filename='/tmp/native-host.log', level=logging.INFO)
 
 _id = 1
 stdout_queue = asyncio.Queue()
@@ -118,13 +117,16 @@ async def main():
     loop = asyncio.get_event_loop()
 
     # find firefox profile dir
-    dir = f'/proc/{os.getppid()}/fd/'
-    profile_dir = None
-    for fd in os.listdir(dir):
-        dest = os.readlink(dir + fd)
-        if dest.endswith('/places.sqlite'):
-            profile_dir = os.path.dirname(dest)
-            break
+    if crash_dir := os.environ.get('MOZ_CRASHREPORTER_EVENTS_DIRECTORY'):
+        profile_dir = os.path.dirname(os.path.dirname(crash_dir))
+    else:
+        dir = f'/proc/{os.getppid()}/fd/'
+        profile_dir = None
+        for fd in os.listdir(dir):
+            dest = os.readlink(dir + fd)
+            if dest.endswith('/places.sqlite'):
+                profile_dir = os.path.dirname(dest)
+                break
 
     transport, protocol = await loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout.buffer)
     stdout = asyncio.streams.StreamWriter(transport, protocol, None, loop)
