@@ -26,6 +26,8 @@
     ],
 
     "permissions": [
+        "nativeMessaging",
+
         "alarms",
         "background",
         "contentSettings",
@@ -37,7 +39,6 @@
         "identity",
         "menus",
         "menus.overrideContext",
-        "nativeMessaging",
         "pageCapture",
         "privacy",
         "storage",
