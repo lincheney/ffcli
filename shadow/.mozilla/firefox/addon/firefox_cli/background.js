@@ -25,6 +25,8 @@ async function resolve_function(string) {
         return;
     }
 
+    // some permissions can't be optional, so we use storage to manage those permissions
+    // https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#request-permissions-at-runtime
     const needsCustomPerm = string && permissionsRegex.exec(string);
     if (needsCustomPerm && ! (await browser.storage.local.get({permissions: []})).permissions.includes(needsCustomPerm[1])) {
         return;
@@ -155,32 +157,6 @@ const table = {
             return executeInTab(this, 'userAgent', tabId)
         }
         return window.navigator.userAgent;
-    },
-
-    permissions: {
-        async _do(allow, key) {
-            if (customPermissions.includes(key)) {
-                let settings = await browser.storage.local.get({permissions: []});
-                if (allow && ! settings.permissions.includes(key)) {
-                    settings.permissions.push(key);
-                } else if (!allow && settings.permissions.includes(key)) {
-                    settings.permissions = settings.permissions.filter(x => x !== key);
-                } else {
-                    return;
-                }
-                await browser.storage.local.set(settings);
-            } else if (/\w+/.test(key)) {
-                await browser.permissions[allow ? 'request' : 'remove']({origins: key});
-            } else {
-                await browser.permissions[allow ? 'request' : 'remove']({origins: key});
-            }
-        },
-        request(key) {
-            return table.permissions._do(true, key);
-        },
-        remove(key) {
-            return table.permissions._do(false, key);
-        },
     },
 
     dom: {
