@@ -1,13 +1,11 @@
 {
     "manifest_version": 3,
-    "name": "firefox_cli",
+    "name": "ffcli",
     "version": "1.0",
-
-    "description": "Does stuff",
 
     "browser_specific_settings": {
         "gecko": {
-            "id": "firefox_cli@qianli"
+            "id": "ffcli@lincheney"
         }
     },
 
@@ -19,10 +17,6 @@
         "scripts": [
             "background.js"
         ]
-    },
-
-    "content_security_policy": {
-        "extension_pages": "default-src *; script-src *"
     },
 
     "optional_host_permissions": [
