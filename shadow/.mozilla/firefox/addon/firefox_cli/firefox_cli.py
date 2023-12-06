@@ -13,6 +13,7 @@ import fcntl
 import urllib.request
 import urllib.error
 import http.cookies
+import http.cookiejar
 import configparser
 import os
 import argparse
@@ -21,6 +22,7 @@ import json
 import logging
 import socket
 import base64
+import warnings
 import ruamel.yaml
 
 def parse_json_object(data):
@@ -526,6 +528,34 @@ class actions:
             return proc.returncode
         sys.stdout.buffer.write(data)
 
+    @with_client
+    async def import_cookies(client, args):
+        if args.container:
+            store_id = (await client.browser.contextualIdentities.query({'name': args.container}))[0]['cookieStoreId']
+
+        cookies = http.cookiejar.MozillaCookieJar(args.file)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            cookies.load(ignore_discard=True)
+
+        for values in cookies._cookies.values():
+            for values in values.values():
+                for cookie in values.values():
+                    await client.browser.cookies.set({
+                        'domain': cookie.domain,
+                        'expirationDate': cookie.expires,
+                        # 'firstPartyDomain': ...,
+                        'httpOnly': False,
+                        'name': cookie.name,
+                        'partitionKey': None,
+                        'path': cookie.path,
+                        'sameSite': 'no_restriction',
+                        'secure': cookie.secure,
+                        'storeId': store_id,
+                        'url': f'https://{cookie.domain.lstrip(".")}{cookie.path}',
+                        'value': cookie.value,
+                    })
+
 async def async_main(args):
     return await getattr(actions, args.CMD.replace('-', '_'))(args)
 
@@ -607,6 +637,10 @@ def main():
     group.add_argument('--allow-hosts', action='append')
     group = sub.add_mutually_exclusive_group()
     group.add_argument('-c', '--container')
+
+    sub = subparsers.add_parser('import-cookies')
+    sub.add_argument('file')
+    sub.add_argument('-c', '--container')
 
     sub = subparsers.add_parser('screenshot')
     sub.add_argument('tab', type=int, nargs='?')
