@@ -227,8 +227,8 @@ class Client:
     def __getattr__(self, key):
         return RequestBuilder(self, key)
 
-    async def subscribe(self, event, num_events=-1, **kwargs):
-        return Subscription(self, event, kwargs, num_events)
+    def subscribe(self, event, *args, **kwargs):
+        return Subscription(self, event, kwargs, *args)
 
     async def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
         return Fetch(self, url, {

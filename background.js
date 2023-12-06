@@ -184,7 +184,7 @@ const table = {
         sendKey(path, key, args) { return table.dom._do('dom.sendKey', path, [key], args); },
     },
 
-    async subscribe(event, filter=null, numEvents=-1) {
+    async subscribe(event, filter=null, numEvents=Infinity) {
         const ev = resolve_function(event);
         if (!ev || typeof ev.addListener != 'function') {
             throw new Error(`no such event ${event}`);
