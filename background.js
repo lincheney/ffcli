@@ -1,4 +1,4 @@
-const port = browser.runtime.connectNative("qianli");
+const port = browser.runtime.connectNative("ffcli");
 
 const customPermissions = [
     "alarms",

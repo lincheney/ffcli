@@ -135,7 +135,7 @@ async def main():
     protocol = asyncio.StreamReaderProtocol(stdin)
     await loop.connect_read_pipe(lambda: protocol, sys.stdin.buffer)
 
-    server = await asyncio.start_unix_server(worker, profile_dir + '/qianli.sock')
+    server = await asyncio.start_unix_server(worker, profile_dir + '/ffcli.sock')
     async with server:
         tasks = [server.serve_forever(), write_to_stdout(stdout)]
         tasks = [asyncio.create_task(t) for t in tasks]

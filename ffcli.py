@@ -161,18 +161,18 @@ class Client:
     def from_profile(cls, profile):
         path = profile
         if '/' not in path and not os.path.exists(path):
-                conf = configparser.ConfigParser(interpolation=None)
-                conf.read(os.path.expanduser('~/.mozilla/firefox/profiles.ini'))
-                for v in conf.values():
-                    if 'Path' in v and (v.get('Name') == path or (not path and v.get('Default') == '1')):
-                        path = os.path.join(os.path.expanduser('~/.mozilla/firefox/'), v.get('Path'))
-                        break
-        if not os.path.exists(os.path.join(path, 'qianli.sock')):
+            conf = configparser.ConfigParser(interpolation=None)
+            conf.read(os.path.expanduser('~/.mozilla/firefox/profiles.ini'))
+            for v in conf.values():
+                if 'Path' in v and (v.get('Name') == path or (not path and v.get('Default') == '1')):
+                    path = os.path.join(os.path.expanduser('~/.mozilla/firefox/'), v.get('Path'))
+                    break
+        if not os.path.exists(os.path.join(path, 'ffcli.sock')):
             raise ValueError('invalid profile or not running: %s' % path)
         return cls(path)
 
     def __init__(self, profile_dir):
-        self.sock_path = profile_dir + '/qianli.sock'
+        self.sock_path = profile_dir + '/ffcli.sock'
         self.reader = None
         self.writer = None
         self.id = 0

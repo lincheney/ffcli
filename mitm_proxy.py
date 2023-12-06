@@ -6,7 +6,7 @@ from mitmproxy.net.http import cookies
 from mitmproxy import ctx
 from typing import Optional
 
-from firefox_cli import Client
+from ffcli import Client
 
 sep = '-'*50
 
