@@ -23,7 +23,6 @@ import logging
 import socket
 import base64
 import warnings
-import ruamel.yaml
 
 def parse_json_object(data):
     try:
@@ -37,16 +36,25 @@ def parse_json_object(data):
     return data
 
 def parse_maybe_json(data):
-    # replace # before yaml parsing so that it gets treated as part of the string
-    c = '\x01'
-    cjson = json.dumps(c).strip('"')
     try:
+        import ruamel.yaml
+    except ImportError:
+        try:
+            data = json.loads(data)
+        except json.JSONDecodeError:
+            pass
+    else:
+        # replace # before yaml parsing so that it gets treated as part of the string
+        c = '\x01'
+        cjson = json.dumps(c).strip('"')
         safe = data.replace('#', c)
-        data = ruamel.yaml.YAML(typ='safe', pure=True).load(safe)
-        data = json.dumps(data).replace(cjson, '#')
-        data = json.loads(data)
-    except ruamel.yaml.error.YAMLError:
-        pass
+        try:
+            data = ruamel.yaml.YAML(typ='safe', pure=True).load(safe)
+        except ruamel.yaml.error.YAMLError:
+            pass
+        else:
+            data = json.dumps(data).replace(cjson, '#')
+            data = json.loads(data)
     return data
 
 def get_free_port():
