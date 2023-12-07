@@ -17,22 +17,25 @@ const customPermissions = [
     // "storage",
     "theme"
 ];
-const permissionsRegex = RegExp('^browser\\.(' + customPermissions.join('|') +')\.');
 
 async function resolve_function(string) {
-    // do not allow access storage
-    if (/^browser\.storage\./.test(string)) {
-        return;
+    const fn = (string || '').split('.');
+
+    if (fn[0] == 'browser') {
+
+        // do not allow access to storage or runtime.connectNative
+        if (fn[1] == 'storage' || (fn[1] == 'runtime' && fn[2] == 'connectNative')) {
+            return;
+        }
+
+        // some permissions can't be optional, so we use storage to manage those permissions
+        // https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#request-permissions-at-runtime
+        if (customPermissions.includes(fn[1]) && ! (await browser.storage.local.get({permissions: []})).permissions.includes(needsCustomPerm[1])) {
+            return;
+        }
     }
 
-    // some permissions can't be optional, so we use storage to manage those permissions
-    // https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#request-permissions-at-runtime
-    const needsCustomPerm = string && permissionsRegex.exec(string);
-    if (needsCustomPerm && ! (await browser.storage.local.get({permissions: []})).permissions.includes(needsCustomPerm[1])) {
-        return;
-    }
-
-    return (string || '').split('.').reduce((x, y) => x && x[y], table);
+    return fn.reduce((x, y) => x && x[y], table);
 }
 
 function sleep(timeout) {
