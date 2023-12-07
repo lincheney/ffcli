@@ -37,6 +37,8 @@ Prerequisites:
 1. Download and install the web extension from one of the releases https://github.com/lincheney/ffcli/releases/
 1. Confirm it is working:
     * run `/path/to/ffcli.py -P /path/to/firefox/profile status`
+1. (Optional) install [ruamel.yaml](https://yaml.readthedocs.io/en/latest/install/)
+1. (Optional) install [mitmproxy](https://docs.mitmproxy.org/stable/overview-installation/)
 
 ## Usage
 
@@ -104,7 +106,7 @@ There are two kinds of permissions:
     * you will *not* be able to manage these permissions through the [permissions API](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/permissions)
 * custom permissions:
     * there are a number of permissions that [could not be added as optional](https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#request-permissions-at-runtime). Therefore, they are added as non-optional and `ffcli` controls their permissions instead.
-    * to manage these, go to `about:addons`, find the `ffcli` addon and go to its `Permissions` tab.
+    * to manage these, go to `about:addons`, find the `ffcli` addon and go to its `Preferences` tab.
 
 Some commands do not require any permissions (e.g. `status`).
 
