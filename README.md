@@ -90,7 +90,7 @@ If provided, the `id` is also set in the response.
 
 Here is an example to list browser windows using `socat`:
 ```bash
-echo '{"id": 1, "fn": "browser.windows.getAll", args: []}' | socat - unix:///path/to/ffcli.sock
+echo '{"id": 1, "fn": "browser.windows.getAll", "args": []}' | socat - unix:///path/to/ffcli.sock
 ```
 
 ### Permissions
