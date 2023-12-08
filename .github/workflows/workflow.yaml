@@ -35,7 +35,7 @@ jobs:
             tag_name: env.version,
             target_commitish: env.GITHUB_SHA,
             name: env.version,
-            body: "https://github.com/\(env.GITHUB_REPO)/releases/download/\(.version)/ffcli-\(env.version).xpi",
+            body: "https://github.com/\(env.GITHUB_REPO)/releases/download/\(env.version)/ffcli-\(env.version).xpi",
           }')"
 
           release_id="$(
