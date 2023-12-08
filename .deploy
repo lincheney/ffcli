@@ -2,6 +2,7 @@
 
 set -eu -o pipefail
 
+log() { printf '%s\n' "$*"; }
 b64() {
     base64 -w0 | tr -d = | tr + - | tr / _
 }
@@ -23,10 +24,20 @@ addon_curl() {
     printf %s "$stdout"
 }
 
-version="$(unzip -p /tmp/ffcli.zip manifest.json | jq -re .version)"
-if ! details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon/versions/$version/")"; then
+version="$(<manifest.json jq -re .version)"
+log "Got version $version"
 
-    upload="$(addon_curl https://addons.mozilla.org/api/v5/addons/upload/ -XPOST -F "upload=@$file" -F channel=unlisted | jq -re .uuid)"
+if details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon/versions/$version/")"; then
+    log "Version $version already exists"
+
+else
+    log 'Creating zip file'
+    files=( background.js options.html options.js manifest.json null )
+    zip -r -FS ffcli.zip "${files[@]}"
+
+    log 'Uploading zip file'
+    upload="$(addon_curl https://addons.mozilla.org/api/v5/addons/upload/ -XPOST -F upload=@ffcli.zip -F channel=unlisted | jq -re .uuid)"
+    log 'Waiting for addon to be validated'
     while true; do
         details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/upload/$upload/" -H 'Content-Type: application/json')"
         if <<<"$details" jq -re .processed >/dev/null; then
@@ -42,6 +53,7 @@ if ! details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addo
     data="$(jq -nc --arg upload "$upload" '{upload: $upload}')"
     version="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon/versions/" -H 'Content-Type: application/json' -d "$data" | jq -re .version)"
 
+    log 'Waiting for addon to be approved'
     while true; do
         details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon/versions/$version/")"
         status="$(<<<"$details" jq -re .file.status)"
@@ -57,4 +69,5 @@ if ! details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addo
 fi
 
 url="$(<<<"$details" jq -re .file.url)"
+log 'Downloading XPI'
 addon_curl "$url" --output "$1"

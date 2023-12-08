@@ -17,10 +17,10 @@ jobs:
         uses: actions/checkout@v1
 
       - name: Retrieve version
-        run: unzip -p /tmp/ffcli.zip manifest.json | jq -re '"VERSION=" + .version | @sh' >>$GITHUB_OUTPUT
+        run: <manifest.json jq -re '"VERSION=" + .version | @sh' >>$GITHUB_OUTPUT
 
       - name: sign and download
         env:
           AMO_ISSUER: ${{ secrets.amo_issuer }}
           AMO_SECRET: ${{ secrets.amo_secret }}
-        run: bash .deploy ffcli.xpi
+        run: bash -x .deploy ffcli.xpi
