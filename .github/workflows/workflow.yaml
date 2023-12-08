@@ -2,7 +2,7 @@ name: Workflow
 on:
   push:
     branches: [main]
-    paths: [manifest.json]
+    # paths: [manifest.json]
 
 # permission can be added at job level or workflow level
 permissions:
@@ -16,40 +16,9 @@ jobs:
       - name: Git clone the repository
         uses: actions/checkout@v1
 
-      - name: sign and download
+      - name: make a release
         env:
           AMO_ISSUER: ${{ secrets.amo_issuer }}
           AMO_SECRET: ${{ secrets.amo_secret }}
           ADDON_ID: ffcli@lincheney
         run: bash .deploy ffcli.xpi
-
-      - name: make release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_REPO: ${{ github.repository }}
-        run: |
-          export version="$(<manifest.json jq -re .version)"
-
-          data="$(jq -ren '{
-            tag_name: env.version,
-            target_commitish: env.GITHUB_SHA,
-            name: env.version,
-            body: "https://github.com/\(env.GITHUB_REPO)/releases/download/\(env.version)/ffcli-\(env.version).xpi",
-          }')"
-
-          release_id="$(
-            curl -L --fail-with-body \
-              "https://api.github.com/repos/$GITHUB_REPO/releases" \
-              -H 'Accept: application/vnd.github+json' \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -d "$data" \
-            | tee /dev/stderr | jq -re .id
-          )"
-
-          curl -L --fail-with-body \
-            "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=ffcli-$version.xpi" \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'Content-type: application/octet-stream' \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            --data-binary @ffcli.xpi

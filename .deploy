@@ -7,6 +7,15 @@ b64() {
     base64 -w0 | tr -d = | tr + - | tr / _
 }
 
+_curl() {
+    if stdout="$(curl -L --fail-with-body --silent --show-error "$@")"; then
+        echo "$stdout"
+    else
+        echo "$stdout" >&2
+        return 1
+    fi
+}
+
 addon_curl() {
     header="$(jq -nc '{alg: "HS256", typ: "JWT"}' | b64)" && \
     payload="$(jq -nc '{
@@ -17,11 +26,11 @@ addon_curl() {
     }' | b64)" && \
     signature="$(<<<"$header.$payload" tr -d \\n | openssl dgst -binary -sha256 -hmac "$AMO_SECRET" | b64)" && \
     jwt="$header.$payload.$signature" && \
-    if ! stdout="$(curl -L --fail-with-body --silent --show-error -H "Authorization: JWT $jwt" "$@")"; then
-        echo "$stdout" >&2
-        return 1
-    fi && \
-    printf %s "$stdout"
+    _curl -H "Authorization: JWT $jwt" "$@"
+}
+
+github_curl() {
+    _curl -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GITHUB_TOKEN" "$@";
 }
 
 version="$(<manifest.json jq -re .version)"
@@ -70,4 +79,26 @@ fi
 
 url="$(<<<"$details" jq -re .file.url)"
 log 'Downloading XPI'
-addon_curl "$url" --output "$1"
+filename="ffcli-$version.xpi"
+addon_curl "$url" --output "$filename"
+
+release_id="$( (
+    if ! github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/tags/$version"; then
+        log 'Creating release'
+        url="https://github.com/$GITHUB_REPO/releases/download/$version/$filename"
+        data="$(jq -ren --arg version "$version" --arg url "$url" '{
+            tag_name: $version,
+            target_commitish: env.GITHUB_SHA,
+            name: $version,
+            body: $url,
+        }')"
+
+        github_curl "https://api.github.com/repos/$GITHUB_REPO/releases" --data "$data"
+    fi
+) | jq -re .id)"
+
+log 'Uploading XPI'
+github_curl \
+    "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=$filename" \
+    -H 'Content-type: application/octet-stream' \
+    --data-binary "@$filename"
