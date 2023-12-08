@@ -2,7 +2,7 @@
 
 set -eu -o pipefail
 
-log() { printf '%s\n' "$*"; }
+log() { printf '%s\n' "$*" >&2; }
 b64() {
     base64 -w0 | tr -d = | tr + - | tr / _
 }
