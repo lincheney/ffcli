@@ -27,7 +27,7 @@ addon_curl() {
 version="$(<manifest.json jq -re .version)"
 log "Got version $version"
 
-if details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon/versions/$version/")"; then
+if details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$ADDON_ID/versions/$version/")"; then
     log "Version $version already exists"
 
 else
@@ -51,11 +51,11 @@ else
     done
 
     data="$(jq -nc --arg upload "$upload" '{upload: $upload}')"
-    version="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon/versions/" -H 'Content-Type: application/json' -d "$data" | jq -re .version)"
+    version="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$ADDON_ID/versions/" -H 'Content-Type: application/json' -d "$data" | jq -re .version)"
 
     log 'Waiting for addon to be approved'
     while true; do
-        details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon/versions/$version/")"
+        details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$ADDON_ID/versions/$version/")"
         status="$(<<<"$details" jq -re .file.status)"
         if [[ "$status" == disabled ]]; then
             echo "review failed" >&2

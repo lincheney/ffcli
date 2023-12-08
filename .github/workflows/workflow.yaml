@@ -23,4 +23,5 @@ jobs:
         env:
           AMO_ISSUER: ${{ secrets.amo_issuer }}
           AMO_SECRET: ${{ secrets.amo_secret }}
+          ADDON_ID: ffcli@lincheney
         run: bash -x .deploy ffcli.xpi
