@@ -129,10 +129,10 @@ if asset="$(github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/$rel
     github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/assets/$(<<<"$asset" jq -re .id)" -XDELETE
 fi
 
-manifest="$(<<<"$old_manifest" jq -re --arg url "$url" --arg addon_id "$addon_id" --arg version "$version" '{
+manifest="$(<<<"$old_manifest" jq -s -re --arg url "$url" --arg addon_id "$addon_id" --arg version "$version" '{
     addons: {
         ($addon_id): {
-            updates: (.addons[$addon_id].updates | map(select(.version != $version)) + [{
+            updates: (.[0].addons[$addon_id].updates//[] | map(select(.version != $version)) + [{
                 version: $version,
                 update_link: $url,
             }])
