@@ -47,8 +47,9 @@ jobs:
             | tee /dev/stderr | jq -re .id
           )"
 
-          curl -L \
+          curl -L --fail-with-body \
             "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=ffcli-version.xpi" \
-            -H 'Accept: application/octet-stream' \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'Content-type: application/octet-stream' \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             --data-binary @ffcli.xpi
