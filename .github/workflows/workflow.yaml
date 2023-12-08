@@ -2,7 +2,7 @@ name: Workflow
 on:
   push:
     branches: [main]
-    # paths: [manifest.json]
+    paths: [manifest.json]
 
 # permission can be added at job level or workflow level
 permissions:
@@ -23,4 +23,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REPO: ${{ github.repository }}
-        run: bash -x .deploy ffcli.xpi
+        run: bash .deploy ffcli.xpi
