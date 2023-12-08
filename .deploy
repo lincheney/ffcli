@@ -115,6 +115,7 @@ release_id="$( (
             tag_name: $tag,
             target_commitish: env.GITHUB_SHA,
             name: $tag,
+            make_latest: false,
         }')"
 
         github_curl "https://api.github.com/repos/$GITHUB_REPO/releases" --data "$data"
