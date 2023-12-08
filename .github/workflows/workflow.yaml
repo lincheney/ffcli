@@ -16,12 +16,36 @@ jobs:
       - name: Git clone the repository
         uses: actions/checkout@v1
 
-      - name: Retrieve version
-        run: <manifest.json jq -re '"VERSION=" + .version | @sh' >>$GITHUB_OUTPUT
-
       - name: sign and download
         env:
           AMO_ISSUER: ${{ secrets.amo_issuer }}
           AMO_SECRET: ${{ secrets.amo_secret }}
           ADDON_ID: ffcli@lincheney
-        run: bash -x .deploy ffcli.xpi
+        run: bash .deploy ffcli.xpi
+
+      - name: make release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: |
+          data="$(<manifest.json jq -re '{
+            tag_name: .version,
+            target_commitish: env.GITHUB_TOKEN,
+            name: .version,
+          }')"
+
+          release_id="$(
+            curl -L \
+              "https://api.github.com/repos/$GITHUB_REPO/releases" \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -d "$data" \
+            | jq -re .id
+          )"
+
+          curl -L \
+            "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=ffcli.xpi"
+            -H 'Accept: application/octet-stream' \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            --data-binary @ffcli.xpi
