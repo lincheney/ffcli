@@ -1,0 +1,26 @@
+name: Workflow
+on:
+  push:
+    branches: [main]
+    paths: [manifest.json]
+
+# permission can be added at job level or workflow level
+permissions:
+  id-token: write
+  contents: read    # This is required for actions/checkout@v1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v1
+
+      - name: Retrieve version
+        run: unzip -p /tmp/ffcli.zip manifest.json | jq -re '"VERSION=" + .version | @sh' >>$GITHUB_OUTPUT
+
+      - name: sign and download
+        env:
+          AMO_ISSUER: ${{ secrets.amo_issuer }}
+          AMO_SECRET: ${{ secrets.amo_secret }}
+        run: bash .deploy ffcli.xpi
