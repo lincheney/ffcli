@@ -36,12 +36,12 @@ jobs:
           }')"
 
           release_id="$(
-            curl -L \
+            curl -L --fail-with-body \
               "https://api.github.com/repos/$GITHUB_REPO/releases" \
               -H 'Accept: application/vnd.github+json' \
               -H "Authorization: Bearer $GITHUB_TOKEN" \
               -d "$data" \
-            | jq -re .id
+            | tee /dev/stderr | jq -re .id
           )"
 
           curl -L \
