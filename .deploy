@@ -97,6 +97,7 @@ release_id="$( (
     fi
 ) | jq -re .id)"
 
+github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/$release_id/assets"
 if ! (github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/$release_id/assets" | jq -r .[].name | grep -vFxq "$filename"); then
     log 'Uploading XPI'
     github_curl "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=$filename" \
