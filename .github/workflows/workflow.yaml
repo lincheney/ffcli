@@ -21,4 +21,7 @@ jobs:
           AMO_ISSUER: ${{ secrets.amo_issuer }}
           AMO_SECRET: ${{ secrets.amo_secret }}
           ADDON_ID: ffcli@lincheney
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPO: ${{ github.repository }}
         run: bash .deploy ffcli.xpi
