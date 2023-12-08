@@ -45,7 +45,7 @@ jobs:
           )"
 
           curl -L \
-            "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=ffcli.xpi"
+            "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=ffcli.xpi" \
             -H 'Accept: application/octet-stream' \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             --data-binary @ffcli.xpi
