@@ -123,7 +123,7 @@ release_id="$( (
 ) | jq -re .id)"
 
 old_manifest=
-if asset="$(github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/$release_id/assets" | jq -r --arg tag "$tag" '.[] | select(.name == $tag+".json")')"; then
+if asset="$(github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/$release_id/assets" | jq -re --arg tag "$tag" '.[] | select(.name == $tag+".json")')"; then
     old_manifest="$(_curl "$(<<<"$asset" jq -re .url)")"
 
     github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/assets/$(<<<"$asset" jq -re .id)" -XDELETE
