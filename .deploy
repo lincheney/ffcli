@@ -34,9 +34,10 @@ github_curl() {
 }
 
 version="$(<manifest.json jq -re .version)"
+addon_id="$(<manifest.json jq -re .browser_specific_settings.gecko.id)"
 log "Got version $version"
 
-if details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$ADDON_ID/versions/$version/")"; then
+if details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon_id/versions/$version/")"; then
     log "Version $version already exists"
 
 else
@@ -60,11 +61,11 @@ else
     done
 
     data="$(jq -nc --arg upload "$upload" '{upload: $upload}')"
-    version="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$ADDON_ID/versions/" -H 'Content-Type: application/json' -d "$data" | jq -re .version)"
+    version="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon_id/versions/" -H 'Content-Type: application/json' -d "$data" | jq -re .version)"
 
     log 'Waiting for addon to be approved'
     while true; do
-        details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$ADDON_ID/versions/$version/")"
+        details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon_id/versions/$version/")"
         status="$(<<<"$details" jq -re .file.status)"
         if [[ "$status" == disabled ]]; then
             echo "review failed" >&2
@@ -82,15 +83,16 @@ log 'Downloading XPI'
 filename="ffcli-$version.xpi"
 addon_curl "$url" --output "$filename"
 
+url="https://github.com/$GITHUB_REPO/releases/download/$version/$filename"
 release_id="$( (
     if ! github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/tags/$version"; then
         log 'Creating release'
-        url="https://github.com/$GITHUB_REPO/releases/download/$version/$filename"
         data="$(jq -ren --arg version "$version" --arg url "$url" '{
             tag_name: $version,
             target_commitish: env.GITHUB_SHA,
             name: $version,
             body: $url,
+            generate_release_notes: true,
         }')"
 
         github_curl "https://api.github.com/repos/$GITHUB_REPO/releases" --data "$data"
@@ -103,3 +105,40 @@ if ! (github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/$release_i
         -H 'Content-type: application/octet-stream' \
         --data-binary "@$filename"
 fi
+
+log 'Updating manifest'
+tag=update-manifest
+release_id="$( (
+    if ! github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/tags/$tag"; then
+        log 'Creating release'
+        data="$(jq -ren --arg tag "$tag" --arg url "$url" '{
+            tag_name: $tag,
+            target_commitish: env.GITHUB_SHA,
+            name: $tag,
+        }')"
+
+        github_curl "https://api.github.com/repos/$GITHUB_REPO/releases" --data "$data"
+    fi
+) | jq -re .id)"
+
+old_manifest=
+if asset="$(github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/$release_id/assets" | jq -r --arg tag "$tag" '.[] | select(.name == $tag+".json")')"; then
+    old_manifest="$(_curl "$(<<<"$asset" jq -re .url)")"
+
+    github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/assets/$(<<<"$asset" jq -re .id)" -XDELETE
+fi
+
+manifest="$(<<<"$old_manifest" jq -re --arg url "$url" --arg addon_id "$addon_id" --arg version "$version" '{
+    addons: {
+        [$addon_id]: {
+            updates: (.addons[$addon_id].updates | map(select(.version != $version))) + [{
+                version: $version,
+                update_link: $url,
+            }]
+        }
+    }
+}')"
+
+github_curl "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=$tag.json" \
+    -H 'Content-type: application/octet-stream' \
+    --data-raw "$manifest"
