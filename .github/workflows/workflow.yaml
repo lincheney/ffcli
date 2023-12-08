@@ -2,7 +2,7 @@ name: Workflow
 on:
   push:
     branches: [main]
-    # paths: [manifest.json]
+    paths: [manifest.json]
 
 # permission can be added at job level or workflow level
 permissions:
