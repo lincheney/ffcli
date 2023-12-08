@@ -8,19 +8,19 @@ b64() {
 }
 
 addon_curl() {
-    header="$(jq -nc '{alg: "HS256", typ: "JWT"}' | b64)"
+    header="$(jq -nc '{alg: "HS256", typ: "JWT"}' | b64)" && \
     payload="$(jq -nc '{
         "iss": env.AMO_ISSUER,
         "jti": now,
         "iat": now,
         "exp": (now + 60),
-    }' | b64)"
-    signature="$(<<<"$header.$payload" tr -d \\n | sha256hmac --key "$AMO_SECRET" | cut -d' ' -f1 | xxd -r -p | b64)"
-    jwt="$header.$payload.$signature"
+    }' | b64)" && \
+    signature="$(<<<"$header.$payload" tr -d \\n | openssl dgst -binary -sha256 -hmac "$AMO_SECRET" | cut -d' ' -f1 | xxd -r -p | b64)" && \
+    jwt="$header.$payload.$signature" && \
     if ! stdout="$(curl -L --fail-with-body --silent --show-error -H "Authorization: JWT $jwt" "$@")"; then
         echo "$stdout" >&2
         return 1
-    fi
+    fi && \
     printf %s "$stdout"
 }
 
