@@ -31,7 +31,7 @@ jobs:
         run: |
           data="$(<manifest.json jq -re '{
             tag_name: .version,
-            target_commitish: env.GITHUB_TOKEN,
+            target_commitish: env.GITHUB_SHA,
             name: .version,
           }')"
 
