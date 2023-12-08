@@ -15,7 +15,7 @@ addon_curl() {
         "iat": now,
         "exp": (now + 60),
     }' | b64)" && \
-    signature="$(<<<"$header.$payload" tr -d \\n | openssl dgst -binary -sha256 -hmac "$AMO_SECRET" | cut -d' ' -f1 | xxd -r -p | b64)" && \
+    signature="$(<<<"$header.$payload" tr -d \\n | openssl dgst -binary -sha256 -hmac "$AMO_SECRET" | b64)" && \
     jwt="$header.$payload.$signature" && \
     if ! stdout="$(curl -L --fail-with-body --silent --show-error -H "Authorization: JWT $jwt" "$@")"; then
         echo "$stdout" >&2
