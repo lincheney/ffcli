@@ -131,7 +131,7 @@ fi
 
 manifest="$(<<<"$old_manifest" jq -re --arg url "$url" --arg addon_id "$addon_id" --arg version "$version" '{
     addons: {
-        [$addon_id]: {
+        ($addon_id): {
             updates: (.addons[$addon_id].updates | map(select(.version != $version))) + [{
                 version: $version,
                 update_link: $url,
