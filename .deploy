@@ -97,8 +97,9 @@ release_id="$( (
     fi
 ) | jq -re .id)"
 
-log 'Uploading XPI'
-github_curl \
-    "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=$filename" \
-    -H 'Content-type: application/octet-stream' \
-    --data-binary "@$filename"
+if ! (github_curl "https://api.github.com/repos/$GITHUB_REPO/releases/$release_id/assets" | jq -r .[].name | grep -vFxq "$filename"); then
+    log 'Uploading XPI'
+    github_curl "https://uploads.github.com/repos/$GITHUB_REPO/releases/$release_id/assets?name=$filename" \
+        -H 'Content-type: application/octet-stream' \
+        --data-binary "@$filename"
+fi
