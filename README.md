@@ -47,7 +47,8 @@ Then you can interact [directly with the socket](#interacting-over-the-socket),
 [using the CLI script](#using-the-cli),
 or [scripting against the library](#using-the-library).
 
-You may want to skip to look at [example usage](#example-usage).
+You may want to skip to look at [example usage](#example-usage)
+or look at what the [API](API.md).
 
 ### Using the CLI
 
@@ -87,6 +88,7 @@ Requests should be a JSON object with the keys:
 * `id`: (optional) an id for this request
 
 If provided, the `id` is also set in the response.
+If multiple requests are sent, the `id` can be used to correlate responses to requests if they arrive out of order.
 
 Here is an example to list browser windows using `socat`:
 ```bash
@@ -98,7 +100,7 @@ echo '{"id": 1, "fn": "browser.windows.getAll", "args": []}' | socat - unix:///p
 You may find that many commands do not work out of the box.
 For example, if you attempt to list firefox containers by calling `browser.contextualIdentities.query`,
 you may receive an error like `Error: no such function browser.contextualIdentities.query`.
-This is you need to configure permissions to the `contextualIdentities` API first.
+This is because you need to configure permissions to the `contextualIdentities` API first.
 
 There are two kinds of permissions:
 * firefox native permissions:
