@@ -30,7 +30,7 @@ async function resolve_function(string) {
 
         // some permissions can't be optional, so we use storage to manage those permissions
         // https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#request-permissions-at-runtime
-        if (customPermissions.includes(fn[1]) && ! (await browser.storage.local.get({permissions: []})).permissions.includes(needsCustomPerm[1])) {
+        if (customPermissions.includes(fn[1]) && ! (await browser.storage.local.get({permissions: []})).permissions.includes(customPermissions[1])) {
             return;
         }
     }
