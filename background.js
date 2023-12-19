@@ -185,7 +185,7 @@ const table = {
             numEvents = Infinity;
         }
 
-        const ev = await resolve_function(event, false);
+        const ev = await resolve_function(event, true);
         if (!ev || typeof ev.addListener != 'function') {
             throw new Error(`no such event ${event}`);
         }
