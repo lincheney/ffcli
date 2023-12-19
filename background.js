@@ -1,22 +1,5 @@
+import { customPermissions } from './permissions.js';
 const port = browser.runtime.connectNative("ffcli");
-
-const customPermissions = [
-    "alarms",
-    "background",
-    "contentSettings",
-    "contextualIdentities",
-    "debugger",
-    "downloads",
-    // "downloads.open",
-    "find",
-    "identity",
-    "menus",
-    // "menus.overrideContext",
-    "pageCapture",
-    "privacy",
-    // "storage",
-    "theme"
-];
 
 async function resolve_function(string) {
     const fn = (string || '').split('.');
@@ -28,9 +11,7 @@ async function resolve_function(string) {
             return;
         }
 
-        // some permissions can't be optional, so we use storage to manage those permissions
-        // https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#request-permissions-at-runtime
-        if (customPermissions.includes(fn[1]) && ! (await browser.storage.local.get({permissions: []})).permissions.includes(fn[1])) {
+        if (customPermissions.has(fn[1]) && ! (await browser.storage.local.get({permissions: []})).permissions.includes(fn[1])) {
             return;
         }
     }

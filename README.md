@@ -112,6 +112,8 @@ There are two kinds of permissions:
 
 Some commands do not require any permissions (e.g. `status`).
 
+See also [here](https://searchfox.org/mozilla-central/source/toolkit/components/extensions/ExtensionPermissionMessages.sys.mjs#32).
+
 ## RPC format
 
 The format is simple.

@@ -14,6 +14,7 @@
     },
 
     "background": {
+        "type": "module",
         "scripts": [
             "background.js"
         ]
@@ -25,57 +26,59 @@
 
     "permissions": [
         "nativeMessaging",
+        "storage",
 
+        "activeTab",
         "alarms",
         "background",
+        "captivePortal",
         "contentSettings",
+        "contextMenus",
         "contextualIdentities",
+        "cookies",
         "debugger",
-        "downloads",
-        "downloads.open",
-        "find",
+        "declarativeNetRequestWithHostAccess",
+        "dns",
         "identity",
+        "idle",
         "menus",
         "menus.overrideContext",
         "pageCapture",
-        "privacy",
-        "storage",
-        "theme"
-    ],
-
-    "optional_permissions": [
-        "activeTab",
-        "bookmarks",
-        "browserSettings",
-        "browsingData",
-        "captivePortal",
-        "clipboardRead",
-        "clipboardWrite",
-        "contextMenus",
-        "cookies",
-        "declarativeNetRequest",
-        "declarativeNetRequestFeedback",
-        "declarativeNetRequestWithHostAccess",
-        "devtools",
-        "dns",
-        "geolocation",
-        "history",
-        "idle",
-        "management",
-        "notifications",
-        "pkcs11",
-        "proxy",
         "scripting",
         "search",
-        "sessions",
-        "tabHide",
-        "tabs",
-        "topSites",
-        "webNavigation",
+        "storage",
+        "theme",
         "webRequest",
         "webRequestBlocking",
         "webRequestFilterResponse",
         "webRequestFilterResponse.serviceWorkerScript"
+    ],
+
+    "optional_permissions": [
+        "bookmarks",
+        "browserSettings",
+        "browsingData",
+        "clipboardRead",
+        "clipboardWrite",
+        "declarativeNetRequest",
+        "declarativeNetRequestFeedback",
+        "devtools",
+        "downloads",
+        "downloads.open",
+        "find",
+        "geolocation",
+        "history",
+        "management",
+        "nativeMessaging",
+        "notifications",
+        "pkcs11",
+        "privacy",
+        "proxy",
+        "sessions",
+        "tabs",
+        "tabHide",
+        "topSites",
+        "webNavigation"
     ]
 
 }
