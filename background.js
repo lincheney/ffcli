@@ -188,7 +188,7 @@ const table = {
     },
 
     async subscribe(event, filter=null, numEvents=Infinity) {
-        const ev = resolve_function(event);
+        const ev = await resolve_function(event);
         if (!ev || typeof ev.addListener != 'function') {
             throw new Error(`no such event ${event}`);
         }
@@ -202,7 +202,6 @@ const table = {
         });
         send(this, {subscriptionId})
 
-        console.log(numEvents);
         const listener = (...args) => {
             if (numEvents == 1) {
                 table.unsubscribe.bind(this)(subscriptionId);
