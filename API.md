@@ -49,14 +49,13 @@ These are the APIs available in `ffcli`.
         * sends a `keydown` event at matching nodes
         * args:
             * `key` - the [key to send](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key)
-* `subscribe(event: string, filter: any, numEvents: number)`
+* `subscribe(event: string, numEvents: number, ...args)`
     * *streams* events back to the client, as if from `event.addListener(...)`
         * the first message *always* contains the `subscriptionId`; this can be used to unsubscribe
         * following messages contain an array of values as received by the listener
     * args:
         * `event` - an "event" e.g. `browser.tabs.onUpdated`
-        * `filter` - event filter (if the event supports it)
-        * `numEvents` - max number of events to return
+        * `args` - additional arguments that are passed to `event.addListener()`. See [documentation for the event](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Browser_support_for_JavaScript_APIs).
     * example: listen to url changes: `dom.subscribe('browser.tabs.onUpdated', {tabId: 123, properties: ['url']})`
         * this will call `browser.tabs.onUpdated.addListener(LISTENER, {tabId: 123, properties: ['url'])`
         * then events streamed will look like `[tabId: number, changeInfo: object, tab: object]` (see [here](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/onUpdated#listener))

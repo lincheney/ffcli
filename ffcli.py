@@ -235,11 +235,7 @@ class Client:
     def __getattr__(self, key):
         return RequestBuilder(self, key)
 
-    def subscribe(self, event, *args, **kwargs):
-        numEvents = kwargs.pop('numEvents', None)
-        args += (kwargs or None,)
-        if numEvents is not None:
-            args += (numEvents,)
+    def subscribe(self, event, *args):
         return Subscription(self, event, *args)
 
     async def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
