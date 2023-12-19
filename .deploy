@@ -53,6 +53,7 @@ else
         if <<<"$details" jq -re .processed >/dev/null; then
             if ! <<<"$details" jq -re .valid >/dev/null; then
                 echo "addon invalid" >&2
+                <<<"$details" jq -r '.validation.messages[] | [.type, .message] | @tsv' >&2
                 exit 1
             fi
             break
