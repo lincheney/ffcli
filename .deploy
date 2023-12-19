@@ -42,7 +42,7 @@ if details="$(addon_curl "https://addons.mozilla.org/api/v5/addons/addon/$addon_
 
 else
     log 'Creating zip file'
-    files=( background.js options.html options.js manifest.json null )
+    files=( background.js options.html options.js permissions.js manifest.json null )
     zip -r -FS ffcli.zip "${files[@]}"
 
     log 'Uploading zip file'
