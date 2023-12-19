@@ -255,7 +255,9 @@ class Client:
 
         request = urllib.request.Request(url, method=method, headers=headers, data=body)
         request.headers['user-agent'] = user_agent
-        request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
+        if cookie_list:
+            request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
+
         try:
             response = await loop.run_in_executor(None, partial(urllib.request.urlopen, request))
         except urllib.error.HTTPError as e:
