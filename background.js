@@ -1,7 +1,7 @@
 import { customPermissions } from './permissions.js';
 const port = browser.runtime.connectNative("ffcli");
 
-async function resolve_function(string) {
+async function _resolve_function(string) {
     const fn = (string || '').split('.');
 
     if (fn[0] == 'browser') {
@@ -19,6 +19,18 @@ async function resolve_function(string) {
     return fn.reduce((x, y) => x && x[y], table);
 }
 
+async function resolve_function(string, nofail) {
+    const func = await _resolve_function(string);
+    if (!nofail && typeof func !== 'function') {
+        throw new Error(`no such function ${string}`);
+    }
+    return func;
+}
+
+async function call_function(string, ...args) {
+    return (await resolve_function(string))(...args);
+}
+
 function sleep(timeout) {
     return new Promise(resolve => setTimeout(resolve, timeout))
 }
@@ -29,10 +41,10 @@ function send(msg, data) {
 
 async function _executeInTab(tabId, args, func) {
     if (tabId == 0) {
-        tabId = (await browser.tabs.query({active: true, currentWindow: true}))[0].id;
+        tabId = (await call_function('browser.tabs.query', {active: true, currentWindow: true}))[0].id;
     }
 
-    const result = await browser.scripting.executeScript({
+    const result = await call_function('browser.scripting.executeScript', {
         injectImmediately: true,
         target: {tabId},
         args,
@@ -173,7 +185,7 @@ const table = {
             numEvents = Infinity;
         }
 
-        const ev = await resolve_function(event);
+        const ev = await resolve_function(event, false);
         if (!ev || typeof ev.addListener != 'function') {
             throw new Error(`no such event ${event}`);
         }
@@ -235,7 +247,7 @@ const table = {
 
         } else if (opts.cookieStoreId && opts.cookieStoreId != 'firefox-default') {
             const extUrl = browser.runtime.getURL("");
-            const tabs = (await browser.tabs.query({cookieStoreId: opts.cookieStoreId})).filter(tab => tab.url.startsWith(extUrl));
+            const tabs = (await call_function('browser.tabs.query', {cookieStoreId: opts.cookieStoreId})).filter(tab => tab.url.startsWith(extUrl));
             let tab = tabs.length > 0 ? tabs[0] : null;
             let newtab;
             if (!tab) {
@@ -246,11 +258,11 @@ const table = {
                         resolver();
                     }
                 };
-                browser.tabs.onUpdated.addListener(listener, {properties: ['status']});
-                newtab = await browser.tabs.create({cookieStoreId: opts.cookieStoreId, active: false, url: browser.runtime.getURL("null")});
-                await browser.tabs.hide(newtab.id);
+                call_function('browser.tabs.onUpdated.addListener', listener, {properties: ['status']});
+                newtab = await call_function('browser.tabs.create', {cookieStoreId: opts.cookieStoreId, active: false, url: browser.runtime.getURL("null")});
+                await call_function('browser.tabs.hide', newtab.id);
                 await promise;
-                browser.tabs.onUpdated.removeListener(listener);
+                call_function('browser.tabs.onUpdated.removeListener', listener);
                 tab = newtab;
             }
 
@@ -271,7 +283,7 @@ const table = {
                     } else if (Date.now() >= fetch_tabs[tabId] + tabTimeout) {
                         // close
                         delete fetch_tabs[tabId];
-                        await browser.tabs.remove(tabId);
+                        await call_function('browser.tabs.remove', tabId);
                         break;
                     }
                     await sleep(tabTimeout);
@@ -314,9 +326,6 @@ port.onMessage.addListener((msg) => {
         delete msg.complete;
         try {
             const func = await resolve_function(fn);
-            if (typeof func != 'function') {
-                throw new Error(`no such function ${fn}`);
-            }
 
             let value = func.bind(msg)(...(args || []));
             if (value instanceof Promise) {
