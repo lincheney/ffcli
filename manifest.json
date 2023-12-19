@@ -16,7 +16,7 @@
     "background": {
         "type": "module",
         "scripts": [
-            "background.js"
+            "background.mjs"
         ]
     },
 
