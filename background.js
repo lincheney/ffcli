@@ -72,7 +72,7 @@ async function executeInTab(msg, fn, tabId, ...args) {
         function getNodes(path, filter) {
             try {
                 filter = filter ?? {};
-                if (!filter.url || window.location === filter.url) {
+                if (!filter.url || window.location.href === filter.url) {
                     return Array.from(document.querySelectorAll(path));
                 }
                 return [];
