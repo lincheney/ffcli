@@ -238,16 +238,16 @@ class Client:
     def subscribe(self, event, *args):
         return Subscription(self, event, *args)
 
-    async def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
-        return Fetch(self, url, {
+    def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
+        return Response(self, 'fetch', (url, {
             'method': method,
             'headers': headers,
             'body': base64.b64encode(body).decode('utf8') or None,
             'cookieStoreId': store_id,
             **kwargs
-        })
+        }))
 
-    async def fake_fetch(self, url, method='GET', headers=(), body=b'', store_id=None, real_ua=False):
+    async def fake_fetch(self, url, method='GET', headers=(), body=b'', redirect='follow', store_id=None, real_ua=False):
         loop = asyncio.get_event_loop()
 
         cookie_list = await self.browser.cookies.getAll({'url': url, 'storeId': store_id})
@@ -258,67 +258,98 @@ class Client:
         if cookie_list:
             request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
 
-        try:
-            response = await loop.run_in_executor(None, partial(urllib.request.urlopen, request))
-        except urllib.error.HTTPError as e:
-            response = e
 
-        body = asyncio.Queue()
-        fd = response.fp.fileno()
-        fcntl.fcntl(fd, fcntl.F_SETFL, fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK)
-        def callback():
+        queue = asyncio.Queue()
+
+        def thread():
+            send = partial(loop.call_soon_threadsafe, queue.put_nowait)
+            set_cookies = partial(loop.call_soon_threadsafe, self.browser.cookies.set)
+
+            class Finish(Exception): pass
+
+            class RequestHandler(urllib.request.BaseHandler):
+                handler_order = 99999 # last
+                def http_request(self, req):
+                    headers = {k.title(): v for k, v in req.unredirected_hdrs.items()}
+                    headers.update({k.title(): v for k, v in req.headers.items() if k.title() not in headers})
+
+                    send({
+                        'type': 'sendHeaders',
+                        'data': dict(
+                            url=req.type + '://' + req.host + req.selector,
+                            method=method,
+                            requestHeaders=[{'name': k, 'value': v} for k, v in headers.items()],
+                        ),
+                    })
+                    return req
+                https_request = http_request
+
+            class ResponseHandler(urllib.request.HTTPRedirectHandler, urllib.request.HTTPDefaultErrorHandler):
+                handler_order = 0 # first
+                def http_response(self, req, response):
+                    send({
+                        'type': 'headersReceived',
+                        'data': dict(
+                            statusCode=response.status,
+                            responseHeaders=[{'name': k, 'value': v} for k, v in response.headers.items()],
+                        ),
+                    })
+                    # read the body
+                    while data := response.read1():
+                        send({'type': 'responseBody', 'data': data})
+
+                    for c in response.headers.get_all('set-cookie') or ():
+                        cookie = http.cookies.BaseCookie()
+                        cookie.load(c)
+                        attrs = list(cookie.values())[0]
+
+                        if expires := attrs.get('expires'):
+                            expires = email.utils.parsedate_tz(attrs.get('expires'))
+                            expires = expires and email.utils.mktime_tz(expires)
+                        elif (max_age := attrs.get('max-age')) and max_age.isdigit():
+                            expires = time.time() + int(max_age)
+
+                        set_cookies({
+                            'domain': attrs.get('domain'),
+                            'expirationDate': expires,
+                            # 'firstPartyDomain': ...,
+                            'httpOnly': 'httponly' in attrs,
+                            'name': attrs.key,
+                            'partitionKey': None,
+                            'path': attrs.get('path'),
+                            'sameSite': {
+                                'none': 'no_restriction',
+                                'lax': 'lax',
+                                'strict': 'strict',
+                            }.get(attrs.get('samesite', '').lower(), 'no_restriction'),
+                            'secure': 'secure' in attrs,
+                            'storeId': store_id,
+                            'url': url,
+                            'value': attrs.value,
+                        })
+                    return response
+                https_response = http_response
+
+                def http_error_default(self, req, *args):
+                    try:
+                        super().http_error_default(req, *args)
+                    except urllib.error.HTTPError as e:
+                        return self.http_response(req, e)
+
+                if redirect != 'follow':
+                    def redirect_request(self, *args):
+                        raise Finish
+
             try:
-                data = response.read1()
-                body.put_nowait(data)
-                if not data:
-                    loop.remove_reader(fd)
-            except ssl.SSLWantReadError:
+                urllib.request.build_opener(RequestHandler, ResponseHandler).open(request)
+            except Finish:
                 pass
-        loop.add_reader(fd, callback)
 
-        status = asyncio.Future()
-        status.set_result(response.status)
-        headers = asyncio.Future()
-        headers.set_result(dict(response.headers.items()))
-
-        for c in response.headers.get_all('set-cookie') or ():
-            cookie = http.cookies.BaseCookie()
-            cookie.load(c)
-            attrs = list(cookie.values())[0]
-
-            if expires := attrs.get('expires'):
-                expires = email.utils.parsedate_tz(attrs.get('expires'))
-                expires = expires and email.utils.mktime_tz(expires)
-            elif (max_age := attrs.get('max-age')) and max_age.isdigit():
-                max_age = int(max_age)
-                expires = time.time() + max_age
-            else:
-                expires = None
-
-            await self.browser.cookies.set({
-                'domain': attrs.get('domain'),
-                'expirationDate': expires,
-                # 'firstPartyDomain': ...,
-                'httpOnly': 'httponly' in attrs,
-                'name': attrs.key,
-                'partitionKey': None,
-                'path': attrs.get('path'),
-                'sameSite': {
-                    'none': 'no_restriction',
-                    'lax': 'lax',
-                    'strict': 'strict',
-                }.get(attrs.get('samesite', '').lower(), 'no_restriction'),
-                'secure': 'secure' in attrs,
-                'storeId': store_id,
-                'url': url,
-                'value': attrs.value,
-            })
-
-        return SimpleNamespace(
-            status=lambda: status,
-            headers=lambda: headers,
-            read=body.get,
-        )
+        fut = asyncio.ensure_future(loop.run_in_executor(None, thread))
+        fut.add_done_callback(lambda f: queue.put_nowait(None))
+        while data := await queue.get():
+            yield data
+        await fut
 
     async def get_user_agent(self, real=False, tab=None, url='https://google.com/404'):
         close_tab = False
@@ -429,24 +460,58 @@ class actions:
             body=(args.data or '').encode('utf8'),
             store_id=store_id,
             real_ua=args.real_ua,
+            redirect='follow' if args.location else 'manual',
         )
         if args.real_proxy:
-            response = await client.fetch(tabId=args.tab, **kwargs)
+            stream = client.fetch(tabId=args.tab, cache='no-store', **kwargs).iter()
         else:
-            response = await client.fake_fetch(**kwargs)
+            stream = client.fake_fetch(**kwargs)
 
-        status = await response.status()
-        if args.verbose:
-            print('< HTTP', status, file=sys.stderr)
-            for k, v in (await response.headers()).items():
-                print('< ', k, ': ', v, sep='', file=sys.stderr)
-            print('<', file=sys.stderr)
+        # okk.....
+        is_web_request = False
+        outfile = None
+        status = 0
+        async for data in stream:
+            print(data)
+            if data is None:
+                continue
 
-        if not args.fail:
-            file = open(args.output, 'wb') if args.output else sys.stdout.buffer
-            while data := await response.read():
-                file.write(data)
-            file.close()
+            type = data['type']
+            data = data['data']
+            if type == 'sendHeaders':
+                is_web_request = True
+                if args.verbose:
+                    print('>', data['method'], re.sub(r'\w+://[^/]*', '', data['url']), file=sys.stderr)
+                    for h in data['requestHeaders']:
+                        print('> ', h['name'], ': ', h['value'], sep='', file=sys.stderr)
+                    print('>', file=sys.stderr)
+
+            elif type == 'headersReceived':
+                status = data['statusCode']
+                if args.verbose:
+                    print('<', data.get('statusLine', f'HTTP {data["statusCode"]}'), file=sys.stderr)
+                    for h in data['responseHeaders']:
+                        print('< ',h['name'], ': ', h['value'], sep='', file=sys.stderr)
+                    print('<', file=sys.stderr)
+
+            elif not is_web_request and type == 'response':
+                status = data['status']
+                if args.verbose:
+                    print('< HTTP', data['status'], file=sys.stderr)
+                    for k, v in data['headers'].items():
+                        print('< ', k, ': ', v, sep='', file=sys.stderr)
+                    print('<', file=sys.stderr)
+
+            elif type == 'responseBody':
+                if args.fail_with_body or not (args.fail and status >= 400):
+                    if outfile is None:
+                        outfile = open(args.output, 'wb') if args.output else sys.stdout.buffer
+                    if isinstance(data, str):
+                        data = base64.b64decode(data)
+                    outfile.write(data)
+
+        if outfile:
+            outfile.close()
 
         if (args.fail or args.fail_with_body) and status >= 400:
             print('The requested URL returned error:', status, file=sys.stderr)
@@ -614,7 +679,7 @@ def main():
     sub.add_argument('--data-raw', dest='data')
     sub.add_argument('-v', '--verbose', action='store_true')
     sub.add_argument('-o', '--output')
-    sub.add_argument('-L', '--location', action='store_true') # not implemented
+    sub.add_argument('-L', '--location', action='store_true')
     sub.add_argument('-s', '--silent', action='store_true') # not implemented
     sub.add_argument('-S', '--show-error', action='store_true') # not implemented
     sub.add_argument('--compressed', action='store_true') # not implemented

@@ -1,6 +1,10 @@
 import { customPermissions } from './permissions.js';
 const port = browser.runtime.connectNative("ffcli");
 
+async function hasPermission(perm) {
+    return (await browser.storage.local.get({permissions: []})).permissions.includes(perm);
+}
+
 async function _resolve_function(string) {
     const fn = (string || '').split('.');
 
@@ -11,7 +15,7 @@ async function _resolve_function(string) {
             return;
         }
 
-        if (customPermissions.has(fn[1]) && ! (await browser.storage.local.get({permissions: []})).permissions.includes(fn[1])) {
+        if (customPermissions.has(fn[1]) && ! hasPermission(fn[1])) {
             return;
         }
     }
@@ -226,24 +230,87 @@ const table = {
             const headers = {};
             resp.headers.forEach((value, key) => { headers[key] = value; });
             send(msg, {
-                status: resp.status,
-                headers,
-                url: resp.url,
-                redirected: resp.redirected,
+                type: 'response',
+                data: {
+                    type: resp.type,
+                    status: resp.status,
+                    statusText: resp.statusText,
+                    headers,
+                    url: resp.url,
+                    redirected: resp.redirected,
+                }
             });
 
             const body = resp.body?.getReader();
             while (body) {
                 const chunk = await body.read();
                 if (chunk.done) { break; };
-                send(msg, {body: btoa(String.fromCharCode.apply(null, chunk.value))});
+                send(msg, {type: 'responseBody', data: btoa(String.fromCharCode.apply(null, chunk.value))});
+            }
+        };
+
+        const webRequestWrapper = async (url, opts, filter, callback) => {
+            // try to use web request to track the request
+            // otherwise just call fetch directly
+            const webRequest = await resolve_function('browser.webRequest', true);
+            if (!(webRequest && await hasPermission('webRequestBlocking'))) {
+                return (await callback(url));
+            }
+
+            // must end in slash
+            const fakeUrl = 'https://' + crypto.randomUUID() + '/';
+            if (url.match('^.*://[^/]+$')) {
+                url += '/';
+            }
+
+            const followRedirect = opts.redirect == 'follow';
+            let requestId = null;
+            const onBeforeRequest = (details) => {
+                requestId = details.requestId;
+                return {redirectUrl: url};
+            };
+            const onSendHeaders = (details) => {
+                if (details.requestId === requestId) {
+                    send(this, {type: 'sendHeaders', data: details});
+                }
+            };
+            const onHeadersReceived = (details) => {
+                if (details.requestId === requestId) {
+                    send(this, {type: 'headersReceived', data: details});
+
+                    if (! (300 <= details.statusCode && details.statusCode < 400)) {
+                        // not a redirect -> remove all the listeners early
+                        // since these listeners may be expensive
+                        webRequest.onBeforeRequest.removeListener(onBeforeRequest);
+                        webRequest.onSendHeaders.removeListener(onSendHeaders);
+                        webRequest.onHeadersReceived.removeListener(onHeadersReceived);
+                    }
+
+                    if (!followRedirect) {
+                        return {redirectUrl: browser.runtime.getURL("null")};
+                    }
+                }
+            };
+            webRequest.onBeforeRequest.addListener(onBeforeRequest, {urls: [fakeUrl]}, ['blocking']);
+            webRequest.onSendHeaders.addListener(onSendHeaders, {urls: [followRedirect ? '<all_urls>' : url]}, ['requestHeaders']);
+            webRequest.onHeadersReceived.addListener(onHeadersReceived, {urls: [followRedirect ? '<all_urls>' : url]}, ['blocking', 'responseHeaders']);
+
+            opts.redirect = 'follow';
+            try {
+                return await callback(fakeUrl, opts);
+            } finally {
+                webRequest.onBeforeRequest.removeListener(onBeforeRequest);
+                webRequest.onSendHeaders.removeListener(onSendHeaders);
+                webRequest.onHeadersReceived.removeListener(onHeadersReceived);
             }
         };
 
         opts.body = opts.body && atob(opts.body);
 
         if ((opts.tabId ?? null) !== null) {
-            await _executeInTab(opts.tabId, [this, url, opts, null], func);
+            await webRequestWrapper(url, opts, {tabId: opts.tabId}, async (url, opts) => {
+                await _executeInTab(opts.tabId, [this, url, opts, null], func);
+            });
 
         } else if (opts.cookieStoreId && opts.cookieStoreId != 'firefox-default') {
             const extUrl = browser.runtime.getURL("");
@@ -258,11 +325,11 @@ const table = {
                         resolver();
                     }
                 };
-                call_function('browser.tabs.onUpdated.addListener', listener, {properties: ['status']});
+                await call_function('browser.tabs.onUpdated.addListener', listener, {properties: ['status']});
                 newtab = await call_function('browser.tabs.create', {cookieStoreId: opts.cookieStoreId, active: false, url: browser.runtime.getURL("null")});
                 await call_function('browser.tabs.hide', newtab.id);
                 await promise;
-                call_function('browser.tabs.onUpdated.removeListener', listener);
+                await call_function('browser.tabs.onUpdated.removeListener', listener);
                 tab = newtab;
             }
 
@@ -291,13 +358,17 @@ const table = {
             })();
 
             try {
-                await _executeInTab(tab.id, [this, url, opts, null], func);
+                await webRequestWrapper(url, opts, {tabId: tab.id}, async (url, opts) => {
+                    await _executeInTab(tab.id, [this, url, opts, null], func);
+                });
             } finally {
                 done = true;
             }
 
         } else {
-            await func(this, url, opts, send);
+            await webRequestWrapper(url, opts, {tabId: -1}, async (url, opts) => {
+                await func(this, url, opts, send);
+            });
         }
     },
 };

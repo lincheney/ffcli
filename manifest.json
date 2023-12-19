@@ -20,6 +20,13 @@
         ]
     },
 
+    "web_accessible_resources": [
+        {
+            "matches": ["<all_urls>"],
+            "resources": ["null"]
+        }
+    ],
+
     "optional_host_permissions": [
         "<all_urls>"
     ],
