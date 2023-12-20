@@ -107,40 +107,59 @@ class RequestBuilder:
             args += (kwargs,)
         return Response(self.client, self.key, args)
 
-class Fetch(Response):
-    _response_fields = {'status', 'headers', 'url', 'redirected'}
+class FetchWrapper:
+    def __init__(self, stream):
+        self.stream = stream
+        self.request = None
+        self.response = None
+        self.body = []
 
-    def __init__(self, client, *args):
-        super().__init__(client, 'fetch', args)
-        self._response = {}
+    def get_one(self):
+        return anext(aiter(self.iter()))
 
     async def iter(self):
-        async for data in super().iter():
-            if isinstance(data, dict):
-                for k in self._response_fields:
-                    if k in data:
-                        self._response[k] = data[k]
-            yield data
+        is_web_request = True
+        async for data in self.stream:
+            if data is None:
+                continue
 
-    async def get_cached_field(self, key):
-        while key not in self._response:
+            type = data['type']
+            data = data['data']
+            if type == 'sendHeaders':
+                is_web_request = True
+                self.request = data
+            elif type == 'headersReceived':
+                self.response = data
+            elif not is_web_request and type == 'response':
+                self.response = data
+            elif type == 'responseBody':
+                if isinstance(data, str):
+                    data = base64.b64decode(data)
+                self.body.append(data)
+
+            yield type, data
+
+    async def wait_for_response(self):
+        while self.response is None:
             await self.get_one()
-        return self._response[key]
 
-    def status(self):
-        return self.get_cached_field('status')
-    def headers(self):
-        return self.get_cached_field('headers')
-    def url(self):
-        return self.get_cached_field('url')
-    def redirected(self):
-        return self.get_cached_field('redirected')
+    async def status(self):
+        await self.wait_for_response()
+        return self.response.get('statusCode', self.response.get('status'))
+    async def headers(self):
+        await self.wait_for_response()
+        if 'responseHeaders' in self.response:
+            return {h['name']: h['value'] for h in self.response['responseHeaders']}
+        return self.response['headers']
 
     async def read(self):
+        for x in self.body:
+            yield x
+        self.body.clear()
         async for data in self.iter():
-            if isinstance(data, dict) and 'body' in data:
-                return base64.b64decode(data['body'])
-        return b''
+            for x in self.body:
+                yield x
+            self.body.clear()
 
 class Subscription(Response):
     def __init__(self, client, *args):
@@ -239,15 +258,15 @@ class Client:
         return Subscription(self, event, *args)
 
     def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
-        return Response(self, 'fetch', (url, {
+        return FetchWrapper(Response(self, 'fetch', (url, {
             'method': method,
             'headers': headers,
             'body': base64.b64encode(body).decode('utf8') or None,
             'cookieStoreId': store_id,
             **kwargs
-        }))
+        })).iter())
 
-    async def fake_fetch(self, url, method='GET', headers=(), body=b'', redirect='follow', store_id=None, real_ua=False):
+    async def _fake_fetch(self, url, method='GET', headers=(), body=b'', redirect='follow', store_id=None, real_ua=False):
         loop = asyncio.get_event_loop()
 
         cookie_list = await self.browser.cookies.getAll({'url': url, 'storeId': store_id})
@@ -350,6 +369,9 @@ class Client:
         while data := await queue.get():
             yield data
         await fut
+
+    def fake_fetch(self, *args, **kwargs):
+        return FetchWrapper(self._fake_fetch(*args, **kwargs))
 
     async def get_user_agent(self, real=False, tab=None, url='https://google.com/404'):
         close_tab = False
@@ -463,7 +485,7 @@ class actions:
             redirect='follow' if args.location else 'manual',
         )
         if args.real_proxy:
-            stream = client.fetch(tabId=args.tab, cache='no-store', **kwargs).iter()
+            stream = client.fetch(tabId=args.tab, cache='no-store', **kwargs)
         else:
             stream = client.fake_fetch(**kwargs)
 
@@ -471,13 +493,7 @@ class actions:
         is_web_request = False
         outfile = None
         status = 0
-        async for data in stream:
-            print(data)
-            if data is None:
-                continue
-
-            type = data['type']
-            data = data['data']
+        async for type, data in stream.iter():
             if type == 'sendHeaders':
                 is_web_request = True
                 if args.verbose:
