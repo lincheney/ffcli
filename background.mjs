@@ -284,9 +284,7 @@ const table = {
                         webRequest.onBeforeRequest.removeListener(onBeforeRequest);
                         webRequest.onSendHeaders.removeListener(onSendHeaders);
                         webRequest.onHeadersReceived.removeListener(onHeadersReceived);
-                    }
-
-                    if (!followRedirect) {
+                    } else if (!followRedirect) {
                         return {redirectUrl: browser.runtime.getURL("null")};
                     }
                 }
