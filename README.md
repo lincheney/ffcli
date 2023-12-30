@@ -160,3 +160,4 @@ This allows the server to *stream* data e.g. like a generator.
     * from within the browser itself: `./ffcli.py curl https://httpbin.org/anything -v --real-proxy`
     * using cookies from a container: `./ffcli.py curl https://httpbin.org/anything -v --container XYZ`
     * by running under a mitmproxy: `./ffcli.py with-http-proxy -- curl https://httpbin.org/anything -v`
+* monitor web requests being made: `./ffcli.py do subscribe browser.webRequest.onBeforeRequest null 'urls: ["<all_urls>"]' [] | jq -r .[].url`
