@@ -254,7 +254,7 @@ const table = {
             // otherwise just call fetch directly
             const webRequest = await resolve_function('browser.webRequest', true);
             if (!(webRequest && await hasPermission('webRequestBlocking'))) {
-                return (await callback(url));
+                return (await callback(url, opts));
             }
 
             // must end in slash
