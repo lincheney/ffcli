@@ -258,7 +258,7 @@ const table = {
             }
 
             // must end in slash
-            const fakeUrl = 'https://' + crypto.randomUUID() + '/';
+            const fakeUrl = new URL(url).origin + '/' + crypto.randomUUID() + '/';
             if (url.match('^.*://[^/]+$')) {
                 url += '/';
             }
