@@ -48,7 +48,7 @@ async def read_from_stdin(stdin):
         if queue := queues.get(id):
             await queue.put(data)
         else:
-            logging.error('No queue for id %i', id)
+            logging.error('No queue for id %s: %s', id, data)
     logging.info('stdin is closed')
 
 async def write_to_socket(writer, queue, requests):
