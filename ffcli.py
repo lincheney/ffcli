@@ -190,7 +190,7 @@ class Subscription(Response):
 
     def __del__(self):
         if self._id is not None:
-            asyncio.create_task(self._client.unsubscribe(self._id).get())
+            self._loop.call_soon(lambda client, id: asyncio.create_task(client.unsubscribe(id).get()), self._client, self._id)
 
 class Client:
     @classmethod
