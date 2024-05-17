@@ -165,9 +165,11 @@ class FetchWrapper:
             self.body.clear()
 
 class Subscription(Response):
-    def __init__(self, client, *args):
-        super().__init__(client, 'subscribe', args)
+    def __init__(self, client, event, num_events=None, loop=None, **kwargs):
+        super().__init__(client, 'subscribe', (event, num_events, kwargs))
         self._id = None
+        self._client = client
+        self._loop = loop or asyncio.get_event_loop()
 
     async def id(self):
         while self._id is None:
@@ -185,6 +187,10 @@ class Subscription(Response):
             if self._id is None:
                 self._id = data['subscriptionId']
             yield data
+
+    def __del__(self):
+        if self._id is not None:
+            asyncio.create_task(self._client.unsubscribe(self._id).get())
 
 class Client:
     @classmethod
@@ -257,8 +263,8 @@ class Client:
     def __getattr__(self, key):
         return RequestBuilder(self, key)
 
-    def subscribe(self, event, *args):
-        return Subscription(self, event, *args)
+    def subscribe(self, event, **kwargs):
+        return Subscription(self, event, **kwargs)
 
     def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
         return FetchWrapper(Response(self, 'fetch', (url, {
