@@ -32,7 +32,7 @@ async function resolve_function(string, nofail) {
 }
 
 async function call_function(string, ...args) {
-    return (await resolve_function(string))(...args);
+    return (await resolve_function(string)).bind(this)(...args);
 }
 
 function sleep(timeout) {
@@ -64,7 +64,7 @@ async function _executeInTab(tabId, args, func) {
 }
 
 async function executeInTab(msg, fn, tabId, ...args) {
-    return _executeInTab(tabId, [msg, fn, args], async (msg, fn, args) => {
+    return _executeInTab(tabId, [msg, tabId, fn, args], async (msg, tabId, fn, args) => {
 
         function getNodes(path, filter) {
             try {
@@ -115,8 +115,19 @@ async function executeInTab(msg, fn, tabId, ...args) {
                 },
 
                 sendKey(key, ...args) {
+                    const props = {bubbles: true, composed: true, cancelable: true}
+                    const keyProps = {key, code: key, charCode: key.charCodeAt(0), keyCode: key.charCodeAt(0), which: key.charCodeAt(0), ...props};
                     const nodes = args.length > 0 ? getNodes(...args) : [document];
-                    return nodes.map(x => x.dispatchEvent(new KeyboardEvent('keydown', {'key': key})));
+                    return nodes.map(x => {
+                        x.dispatchEvent(new FocusEvent('focus', props));
+                        x.dispatchEvent(new KeyboardEvent('keydown', keyProps));
+                        x.dispatchEvent(new KeyboardEvent('keyup', keyProps));
+                        x.dispatchEvent(new KeyboardEvent('keypress', keyProps));
+                        x.dispatchEvent(new KeyboardEvent('input', keyProps));
+                        x.dispatchEvent(new InputEvent('input', props));
+                        x.dispatchEvent(new InputEvent('change', props));
+                        x.dispatchEvent(new FocusEvent('blur', props));
+                    });
                 },
 
             },
