@@ -189,7 +189,7 @@ class Subscription(Response):
             yield data
 
     def __del__(self):
-        if self._id is not None:
+        if self._id is not None and not self._loop.is_closed():
             self._loop.call_soon(lambda client, id: asyncio.create_task(client.unsubscribe(id).get()), self._client, self._id)
 
 class Client:
@@ -359,10 +359,7 @@ class Client:
                 https_response = http_response
 
                 def http_error_default(self, req, *args):
-                    try:
-                        super().http_error_default(req, *args)
-                    except urllib.error.HTTPError as e:
-                        return self.http_response(req, e)
+                    pass
 
                 if redirect != 'follow':
                     def redirect_request(self, *args):

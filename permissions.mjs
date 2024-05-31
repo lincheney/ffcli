@@ -81,3 +81,7 @@ const optionalPermissions = new Set([
 ]);
 
 export const customPermissions = new Set(allPermissions.filter(p => !p.includes('.') && !optionalPermissions.has(p)));
+
+export async function hasPermission(perm) {
+    return (await browser.storage.local.get({permissions: []})).permissions.includes(perm);
+}

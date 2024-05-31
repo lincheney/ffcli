@@ -9,6 +9,11 @@ files=(
     permissions.mjs
     manifest.json
     null
+    shared.mjs
+    api/index.mjs
+    api/inTab.mjs
+    api/fetch.mjs
+    api/subscribe.mjs
 )
 
 log() { printf '%s\n' "$*" >&2; }
