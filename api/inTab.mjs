@@ -3,13 +3,46 @@ import { executeInTab } from './index.mjs';
 export async function executeApi(msg, fn, tabId, ...args) {
     return executeInTab(tabId, [msg, tabId, fn, args], async (msg, tabId, fn, args) => {
 
+        window.nodes ??= {
+            map: new WeakMap(),
+            ref_map: new Map(),
+
+            get_ref(obj) {
+                return window.nodes.map.get(obj);
+            },
+            set_ref(obj) {
+                let ref = window.nodes.get_ref(obj);
+                if (!ref) {
+                    ref = crypto.randomUUID();
+                    window.nodes.map.set(obj, ref);
+                    window.nodes.ref_map.set(ref, new WeakRef(obj));
+                }
+                return ref;
+            },
+            get_obj(ref) {
+                const weak_ref = window.nodes.ref_map.get(ref);
+                if (weak_ref) {
+                    const strong_ref = weak_ref.deref();
+                    if (!strong_ref) {
+                        window.nodes.ref_map.delete(ref);
+                    }
+                    return strong_ref;
+                }
+            },
+        };
+
         function getNodes(path, filter) {
+            let nodes = [];
             try {
                 filter = filter ?? {};
                 if (!filter.url || window.location.href === filter.url) {
-                    return Array.from(document.querySelectorAll(path));
+                    nodes = Array.from(document.querySelectorAll(path));
+
+                    if (filter.ref) {
+                        nodes = nodes.filter(x => window.nodes.get_ref(x) == filter.ref);
+                    }
                 }
-                return [];
+                return nodes;
             } catch(e) {
                 throw new Error(e)
             }
@@ -20,8 +53,27 @@ export async function executeApi(msg, fn, tabId, ...args) {
 
             dom: {
 
-                get(key, ...args) {
-                    return getNodes(...args).map(x => x[key]);
+                get(keys, ...args) {
+                    const nodes = getNodes(...args);
+                    const manyKeys = Array.isArray(keys);
+                    if (!manyKeys) {
+                        keys = [keys];
+                    }
+
+                    return nodes.map(n => {
+                        const values = keys.map(k => {
+                            let value = k ? n[k] : n;
+                            if (typeof value === 'function') {
+                                value = n[k]();
+                            }
+                            if (value instanceof HTMLElement) {
+                                // make some refs
+                                value = window.nodes.set_ref(value);
+                            }
+                            return value;
+                        });
+                        return manyKeys ? values : values[0];
+                    });
                 },
 
                 count(...args) {
@@ -33,12 +85,12 @@ export async function executeApi(msg, fn, tabId, ...args) {
                     for (const node of nodes) {
                         node[key] = value;
                     }
-                    return nodes.length > 0;
+                    return nodes.length;
                 },
 
-                call(key, ...args) {
+                call(key, fnArgs, ...args) {
                     const nodes = getNodes(...args);
-                    return nodes.map(x => x[key]());
+                    return nodes.map(x => x[key](...(fnArgs || [])));
                 },
 
                 getAttributes(...args) {
@@ -53,7 +105,8 @@ export async function executeApi(msg, fn, tabId, ...args) {
 
                 sendKey(key, ...args) {
                     const props = {bubbles: true, composed: true, cancelable: true}
-                    const keyProps = {key, code: key, charCode: key.charCodeAt(0), keyCode: key.charCodeAt(0), which: key.charCodeAt(0), ...props};
+                    const charCode = key.charCodeAt(0);
+                    const keyProps = {key, code: key, charCode, keyCode: charCode, which: charCode, ...props};
                     const nodes = args.length > 0 ? getNodes(...args) : [document];
                     return nodes.map(x => {
                         x.dispatchEvent(new FocusEvent('focus', props));
@@ -94,8 +147,8 @@ export async function executeApi(msg, fn, tabId, ...args) {
 
 function makeApi(fn, numArgs) {
     return function(path, ...args) {
+        args.push(...Array(numArgs - args.length + 1)); // make sure this has numArgs, even if args is originally shorter
         const {tabId=0, ...rest} = args.pop() ?? {};
-        args.push(...Array(numArgs - args.length)); // make sure this has numArgs, even if args is originally shorter
         return executeApi(this, fn, tabId, ...args, path, rest);
     }
 }
@@ -126,8 +179,9 @@ for (const [k, v] of Object.entries({
     count: 0,
     get: 1,
     set: 2,
-    call: 1,
+    call: 2,
     sendKey: 1,
+    getAttributes: 0,
 })) {
     api.dom[k] = makeApi('dom.' + k, v);
 }

@@ -15,37 +15,42 @@ These are the APIs available in `ffcli`.
         * `tabId` - get the user agent from this tab instead
             * this is useful if you have another addon that modifies the user agent inside tabs
 * `dom`
-    * `dom.check(path: string, {tabId?: number, url?: string}): bool`
+    * `dom.check(path: string, {tabId?: number, url?: string, ref?: string}): bool`
         * returns `true` if matching nodes exist
         * args:
             * `path` - [css selector](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll)
             * `tabId` - use this tab, otherwise will use the current tab
             * `url` - match iff the tab has this url
-    * `dom.count(path: string, {tabId?: number, url?: string}): number`
+            * `ref` - match the node with this ref
+    * `dom.count(path: string, {tabId?: number, url?: string, ref?: string}): number`
         * returns the number of matching nodes
     * `dom.wait(path: string, {timeout: number = 0, tabId?: number, url?: string}): bool`
         * returns `true` when a matching node is found, otherwise `false` if the timeout is reached
         * args:
             * `timeout` - wait at most this many milliseconds
-    * `dom.get(path: string, key: string, {tabId?: number, url?: string}): unknown[]`
-        * returns an array of values for the property `key` of each matching node
+    * `dom.get(path: string, keys: string? | Array<string?>, {tabId?: number, url?: string, ref?: string}): unknown[]`
+        * returns an array of values for the property `key` of *each* matching node
         * args:
-            * `key` - the property to get
+            * `keys` - the properties to get
+                * if `null`, returns the node ref which can be used later to refer to the same node
+                * if the resulting property is a function, the function is called and the result is returned
+                * if `keys` is an array, makes an array containing each property
         * example: get the `href` of all links: `dom.get('a', 'href')`
-    * `dom.set(path: string, key: string, value: any, {tabId?: number, url?: string}): bool`
+    * `dom.set(path: string, key: string, value: any, {tabId?: number, url?: string, ref?: string}): bool`
         * sets the property `key` to `value` for each matching node
         * returns `true` iff matching nodes are found
         * args:
             * `key` - the property to set
             * `value` - the value to set it to
-    * `dom.call(path: string, key: string, {tabId?: number, url?: string}): unknown`
+    * `dom.call(path: string, key: string, args: any[], {tabId?: number, url?: string, ref?: string}): unknown`
         * returns an array of return values from calling `key()` on each matching node
         * args:
             * `key` - the function to call
-        * example: click buttons: `dom.call('button', 'click')`
-    * `dom.getAttributes(path: string, {tabId?: number, url?: string}): object[]`
+            * `args` - arguments to the function
+        * example: click buttons: `dom.call('button', 'click', [])`
+    * `dom.getAttributes(path: string, {tabId?: number, url?: string, ref?: string}): object[]`
         * returns an array of attributes of matching nodes
-    * `dom.sendKey(path: string, key: string, {tabId?: number, url?: string})`
+    * `dom.sendKey(path: string, key: string, {tabId?: number, url?: string, ref?: string})`
         * sends a `keydown` event at matching nodes
         * args:
             * `key` - the [key to send](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key)
