@@ -15,7 +15,7 @@ async function _resolve_function(string) {
             return;
         }
 
-        if (customPermissions.has(fn[1]) && ! hasPermission(fn[1])) {
+        if (customPermissions.has(fn[1]) && ! await hasPermission(fn[1])) {
             return;
         }
     }
