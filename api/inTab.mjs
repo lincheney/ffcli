@@ -13,7 +13,7 @@ export async function executeApi(msg, fn, tabId, ...args) {
             set_ref(obj) {
                 let ref = window.nodes.get_ref(obj);
                 if (!ref) {
-                    ref = crypto.randomUUID();
+                    ref = Math.random().toString();
                     window.nodes.map.set(obj, ref);
                     window.nodes.ref_map.set(ref, new WeakRef(obj));
                 }
