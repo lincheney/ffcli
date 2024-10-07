@@ -1,4 +1,4 @@
-import { customPermissions } from "./permissions.js"
+import { customPermissions } from "./permissions.mjs"
 
 document.addEventListener("DOMContentLoaded", async () => {
 
