@@ -37,7 +37,9 @@ export const api = {
 
     unsubscribe(subid) {
         const subs = subscribers[this._id];
-        subs[subid](); // resolves
+        if (subs[subid]) {
+            subs[subid](); // resolves
+        }
         delete subs[subid];
     },
 }
