@@ -263,7 +263,8 @@ class Client:
     def __getattr__(self, key):
         return RequestBuilder(self, key)
 
-    def subscribe(self, event, num_events=None, **kwargs):
+    def subscribe(self, event, num_events=None, args=None, **kwargs):
+        kwargs = {**(args or {}), **kwargs}
         return Subscription(self, event, num_events, **kwargs)
 
     def fetch(self, url, method='GET', headers=(), body=b'', store_id=None, **kwargs):
