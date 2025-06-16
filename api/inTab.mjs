@@ -120,6 +120,11 @@ export async function executeApi(msg, fn, tabId, ...args) {
                     });
                 },
 
+                dispatchEvent(type, options, ...args) {
+                    const nodes = getNodes(...args);
+                    return nodes.map(x => x.dispatchEvent(new Event(type, options)));
+                },
+
             },
         };
 
@@ -182,6 +187,7 @@ for (const [k, v] of Object.entries({
     call: 2,
     sendKey: 1,
     getAttributes: 0,
+    dispatchEvent: 2,
 })) {
     api.dom[k] = makeApi('dom.' + k, v);
 }

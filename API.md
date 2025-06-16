@@ -54,6 +54,9 @@ These are the APIs available in `ffcli`.
         * sends a `keydown` event at matching nodes
         * args:
             * `key` - the [key to send](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key)
+    * `dom.dispatchEvent(path: string, type: string, options: object, {tabId?: number, url?: string, ref?: string}): unknown`
+        * calls `dispatchEvent` with an event `new Event(type, options)`
+        * example: click buttons: `dom.call('button', 'click', [])`
 * `subscribe(event: string, numEvents: number, ...args)`
     * *streams* events back to the client, as if from `event.addListener(...)`
         * the first message *always* contains the `subscriptionId`; this can be used to unsubscribe
