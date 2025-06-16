@@ -34,7 +34,7 @@ addon_curl() {
     header="$(jq -nc '{alg: "HS256", typ: "JWT"}' | b64)" && \
     payload="$(jq -nc '{
         "iss": env.AMO_ISSUER,
-        "jti": now,
+        "jti": (now | tostring),
         "iat": now,
         "exp": (now + 60),
     }' | b64)" && \
