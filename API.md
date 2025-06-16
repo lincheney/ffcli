@@ -22,6 +22,7 @@ These are the APIs available in `ffcli`.
             * `tabId` - use this tab, otherwise will use the current tab
             * `url` - match iff the tab has this url
             * `ref` - match the node with this ref
+            * `parent` - match the node with this parent ref
     * `dom.count(path: string, {tabId?: number, url?: string, ref?: string}): number`
         * returns the number of matching nodes
     * `dom.wait(path: string, {timeout: number = 0, tabId?: number, url?: string}): bool`

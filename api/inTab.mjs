@@ -36,10 +36,22 @@ export async function executeApi(msg, fn, tabId, ...args) {
             try {
                 filter = filter ?? {};
                 if (!filter.url || window.location.href === filter.url) {
-                    nodes = Array.from(document.querySelectorAll(path));
+                    if (filter.ref && path === '' && !filter.parent) {
+                        let node = window.nodes.get_obj(filter.ref);
+                        if (node) {
+                            nodes = [node];
+                        }
+                    } else {
+                        let parent = document;
+                        if (filter.parent) {
+                            parent = window.nodes.get_obj(filter.parent)
+                        }
 
-                    if (filter.ref) {
-                        nodes = nodes.filter(x => window.nodes.get_ref(x) == filter.ref);
+                        nodes = Array.from(parent ? parent.querySelectorAll(path) : []);
+
+                        if (filter.ref) {
+                            nodes = nodes.filter(x => window.nodes.get_ref(x) == filter.ref);
+                        }
                     }
                 }
                 return nodes;
