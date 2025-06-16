@@ -1,7 +1,7 @@
 import { executeInTab } from './index.mjs';
 
-export async function executeApi(msg, fn, tabId, ...args) {
-    return executeInTab(tabId, [msg, tabId, fn, args], async (msg, tabId, fn, args) => {
+export async function executeApi(msg, fn, tabId, opts, ...args) {
+    return executeInTab(tabId, opts, [msg, tabId, fn, args], async (msg, tabId, fn, args) => {
 
         window.nodes ??= {
             map: new WeakMap(),
@@ -165,8 +165,8 @@ export async function executeApi(msg, fn, tabId, ...args) {
 function makeApi(fn, numArgs) {
     return function(path, ...args) {
         args.push(...Array(numArgs - args.length + 1)); // make sure this has numArgs, even if args is originally shorter
-        const {tabId=0, ...rest} = args.pop() ?? {};
-        return executeApi(this, fn, tabId, ...args, path, rest);
+        const {tabId=0, target=null, ...rest} = args.pop() ?? {};
+        return executeApi(this, fn, tabId, {target}, ...args, path, rest);
     }
 }
 

@@ -23,6 +23,7 @@ These are the APIs available in `ffcli`.
             * `url` - match iff the tab has this url
             * `ref` - match the node with this ref
             * `parent` - match the node with this parent ref
+            * `target` - an [injection target](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/scripting/InjectionTarget), e.g. to target specific frames
     * `dom.count(path: string, {tabId?: number, url?: string, ref?: string}): number`
         * returns the number of matching nodes
     * `dom.wait(path: string, {timeout: number = 0, tabId?: number, url?: string}): bool`

@@ -91,7 +91,7 @@ export async function browser_fetch(url, opts={}) {
     console.debug("DEBUG(pried) \t%s\t= %o", "this", this);
     if ((opts.tabId ?? null) !== null) {
         await webRequestWrapper(url, opts, {tabId: opts.tabId}, async (url, opts) => {
-            await executeInTab(opts.tabId, [this, url, opts, null], run_fetch);
+            await executeInTab(opts.tabId, {target: opts.target}, [this, url, opts, null], run_fetch);
         });
 
     } else if (opts.cookieStoreId && opts.cookieStoreId != 'firefox-default') {
@@ -141,7 +141,7 @@ export async function browser_fetch(url, opts={}) {
 
         try {
             await webRequestWrapper(url, opts, {tabId: tab.id}, async (url, opts) => {
-                await executeInTab(tab.id, [this, url, opts, null], run_fetch);
+                await executeInTab(tab.id, {target: opts.target}, [this, url, opts, null], run_fetch);
             });
         } finally {
             done = true;

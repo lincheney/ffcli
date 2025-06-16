@@ -34,14 +34,15 @@ export async function call_function(string, ...args) {
     return (await resolve_function(string)).bind(this)(...args);
 }
 
-export async function executeInTab(tabId, args, func) {
+export async function executeInTab(tabId, opts, args, func) {
     if (tabId == 0) {
         tabId = (await call_function('browser.tabs.query', {active: true, currentWindow: true}))[0].id;
     }
 
+    const target = opts.target ?? {};
     const result = await call_function('browser.scripting.executeScript', {
         injectImmediately: true,
-        target: {tabId},
+        target: {tabId, ...target},
         args,
         func,
     });
