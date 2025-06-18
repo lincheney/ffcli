@@ -53,10 +53,11 @@ These are the APIs available in `ffcli`.
         * example: click buttons: `dom.call('button', 'click', [])`
     * `dom.getAttributes(path: string, filter?: Object): object[]`
         * returns an array of attributes of matching nodes
-    * `dom.sendKey(path: string, key: string, filter?: Object)`
+    * `dom.sendKey(path: string, key: string, code?: number, filter?: Object)`
         * sends a `keydown` event at matching nodes
         * args:
             * `key` - the [key to send](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key)
+            * `code` - the key code to send, if not given is (inaccurately) computed from `key.charCodeAt(0)`
     * `dom.dispatchEvent(path: string, type: string, options: object, filter?: Object): unknown`
         * calls `dispatchEvent` with an event `new Event(type, options)`
         * example: `dom.dispatchEvent('button', 'focus', {})`

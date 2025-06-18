@@ -133,9 +133,9 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
-                sendKey(key, ...args) {
+                sendKey(key, code, ...args) {
                     const props = {bubbles: true, composed: true, cancelable: true}
-                    const charCode = key.charCodeAt(0);
+                    const charCode = code ?? key.charCodeAt(0);
                     const keyProps = {key, code: key, charCode, keyCode: charCode, which: charCode, ...props};
                     const nodes = args.length > 0 ? getNodes(...args) : [document];
                     return nodes.map(x => {
@@ -215,7 +215,7 @@ for (const [k, v] of Object.entries({
     get: 1,
     set: 2,
     call: 2,
-    sendKey: 1,
+    sendKey: 2,
     getAttributes: 0,
     getComputedStyle: 0,
     dispatchEvent: 2,
