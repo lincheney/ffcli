@@ -102,7 +102,14 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
 
                 call(key, fnArgs, ...args) {
                     const nodes = getNodes(...args);
-                    return nodes.map(x => x[key](...(fnArgs || [])));
+                    return nodes.map(x => {
+                        let value = x[key](...(fnArgs || []));
+                        if (value instanceof HTMLElement) {
+                            // make some refs
+                            value = window.nodes.set_ref(value);
+                        }
+                        return value;
+                    });
                 },
 
                 getAttributes(...args) {
