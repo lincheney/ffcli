@@ -122,6 +122,17 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
+                getComputedStyle(...args) {
+                    return getNodes(...args).map(x => {
+                        const result = {};
+                        const style = window.getComputedStyle(x);
+                        for (const prop of style) {
+                            result[prop] = style[prop];
+                        }
+                        return result;
+                    });
+                },
+
                 sendKey(key, ...args) {
                     const props = {bubbles: true, composed: true, cancelable: true}
                     const charCode = key.charCodeAt(0);
@@ -206,6 +217,7 @@ for (const [k, v] of Object.entries({
     call: 2,
     sendKey: 1,
     getAttributes: 0,
+    getComputedStyle: 0,
     dispatchEvent: 2,
 })) {
     api.dom[k] = makeApi('dom.' + k, v);

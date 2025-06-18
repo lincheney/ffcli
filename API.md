@@ -15,22 +15,23 @@ These are the APIs available in `ffcli`.
         * `tabId` - get the user agent from this tab instead
             * this is useful if you have another addon that modifies the user agent inside tabs
 * `dom`
-    * `dom.check(path: string, {tabId?: number, url?: string, ref?: string}): bool`
+    * `dom.check(path: string, filter?: Object): bool`
         * returns `true` if matching nodes exist
         * args:
             * `path` - [css selector](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll)
-            * `tabId` - use this tab, otherwise will use the current tab
-            * `url` - match iff the tab has this url
-            * `ref` - match the node with this ref
-            * `parent` - match the node with this parent ref
-            * `target` - an [injection target](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/scripting/InjectionTarget), e.g. to target specific frames
-    * `dom.count(path: string, {tabId?: number, url?: string, ref?: string}): number`
+            * `filter` - an object with these optional fields:
+                * `tabId` - use this tab, otherwise will use the current tab
+                * `url` - match iff the tab has this url
+                * `ref` - match the node with this ref
+                * `parent` - match the node with this parent ref
+                * `target` - an [injection target](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/scripting/InjectionTarget), e.g. to target specific frames
+    * `dom.count(path: string, filter?: Object): number`
         * returns the number of matching nodes
-    * `dom.wait(path: string, {timeout: number = 0, tabId?: number, url?: string}): bool`
+    * `dom.wait(path: string, {timeout: number = 0, ...filter?: Object}): bool`
         * returns `true` when a matching node is found, otherwise `false` if the timeout is reached
         * args:
             * `timeout` - wait at most this many milliseconds
-    * `dom.get(path: string, keys: string? | Array<string?>, {tabId?: number, url?: string, ref?: string}): unknown[]`
+    * `dom.get(path: string, keys: string? | Array<string?>, filter?: Object): unknown[]`
         * returns an array of values for the property `key` of *each* matching node
         * args:
             * `keys` - the properties to get
@@ -38,27 +39,29 @@ These are the APIs available in `ffcli`.
                 * if the resulting property is a function, the function is called and the result is returned
                 * if `keys` is an array, makes an array containing each property
         * example: get the `href` of all links: `dom.get('a', 'href')`
-    * `dom.set(path: string, key: string, value: any, {tabId?: number, url?: string, ref?: string}): bool`
+    * `dom.set(path: string, key: string, value: any, filter?: Object): bool`
         * sets the property `key` to `value` for each matching node
         * returns `true` iff matching nodes are found
         * args:
             * `key` - the property to set
             * `value` - the value to set it to
-    * `dom.call(path: string, key: string, args: any[], {tabId?: number, url?: string, ref?: string}): unknown`
+    * `dom.call(path: string, key: string, args: any[], filter?: Object): unknown`
         * returns an array of return values from calling `key()` on each matching node
         * args:
             * `key` - the function to call
             * `args` - arguments to the function
         * example: click buttons: `dom.call('button', 'click', [])`
-    * `dom.getAttributes(path: string, {tabId?: number, url?: string, ref?: string}): object[]`
+    * `dom.getAttributes(path: string, filter?: Object): object[]`
         * returns an array of attributes of matching nodes
-    * `dom.sendKey(path: string, key: string, {tabId?: number, url?: string, ref?: string})`
+    * `dom.sendKey(path: string, key: string, filter?: Object)`
         * sends a `keydown` event at matching nodes
         * args:
             * `key` - the [key to send](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key)
-    * `dom.dispatchEvent(path: string, type: string, options: object, {tabId?: number, url?: string, ref?: string}): unknown`
+    * `dom.dispatchEvent(path: string, type: string, options: object, filter?: Object): unknown`
         * calls `dispatchEvent` with an event `new Event(type, options)`
-        * example: click buttons: `dom.call('button', 'click', [])`
+        * example: `dom.dispatchEvent('button', 'focus', {})`
+    * `dom.getComputedStyle(path: string, filter?: Object): unknown`
+        * returns the result of `getComputedStyle` as an `Object`
 * `subscribe(event: string, numEvents: number, ...args)`
     * *streams* events back to the client, as if from `event.addListener(...)`
         * the first message *always* contains the `subscriptionId`; this can be used to unsubscribe
