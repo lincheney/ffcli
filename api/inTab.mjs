@@ -150,9 +150,13 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
-                dispatchEvent(type, options, ...args) {
+                dispatchEvent(type, options, cls, ...args) {
                     const nodes = getNodes(...args);
-                    return nodes.map(x => x.dispatchEvent(new Event(type, options)));
+                    const event_cls = window[`${cls ?? ''}Event`];
+                    return nodes.map(x => {
+                        const event = new event_cls(type, options);
+                        return x.dispatchEvent(event);
+                    });
                 },
 
             },
@@ -218,7 +222,7 @@ for (const [k, v] of Object.entries({
     sendKey: 2,
     getAttributes: 0,
     getComputedStyle: 0,
-    dispatchEvent: 2,
+    dispatchEvent: 3,
 })) {
     api.dom[k] = makeApi('dom.' + k, v);
 }
