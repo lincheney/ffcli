@@ -36,7 +36,7 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
             try {
                 filter = filter ?? {};
                 if (!filter.url || window.location.href === filter.url) {
-                    if (filter.ref && path === '' && !filter.parent) {
+                    if (filter.ref && !path && !filter.parent) {
                         let node = window.nodes.get_obj(filter.ref);
                         if (node) {
                             nodes = [node];
