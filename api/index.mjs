@@ -39,7 +39,7 @@ export async function executeInTab(tabId, opts, args, func) {
         tabId = (await call_function('browser.tabs.query', {active: true, currentWindow: true}))[0].id;
     }
 
-    const target = opts.target ?? {};
+    const target = opts?.target ?? {};
     const result = await call_function('browser.scripting.executeScript', {
         injectImmediately: true,
         target: {tabId, ...target},
