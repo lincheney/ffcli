@@ -60,6 +60,23 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
             }
         }
 
+        function getNodeValues(nodes, keys, manyKeys) {
+            return nodes.map(n => {
+                const values = keys.map(k => {
+                    let value = k ? n[k] : n;
+                    if (typeof value === 'function') {
+                        value = n[k]();
+                    }
+                    if (value instanceof HTMLElement) {
+                        // make some refs
+                        value = window.nodes.set_ref(value);
+                    }
+                    return value;
+                });
+                return manyKeys ? values : values[0];
+            });
+        }
+
         const table = {
             userAgent() { return window.navigator.userAgent; },
 
@@ -71,21 +88,21 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     if (!manyKeys) {
                         keys = [keys];
                     }
+                    return getNodeValues(nodes, keys, manyKeys);
+                },
 
-                    return nodes.map(n => {
-                        const values = keys.map(k => {
-                            let value = k ? n[k] : n;
-                            if (typeof value === 'function') {
-                                value = n[k]();
-                            }
-                            if (value instanceof HTMLElement) {
-                                // make some refs
-                                value = window.nodes.set_ref(value);
-                            }
-                            return value;
-                        });
-                        return manyKeys ? values : values[0];
-                    });
+                shadowRootGet(shadowSelector, keys, ...args) {
+                    const nodes = [];
+                    for (const n of getNodes(...args)) {
+                        if (n.shadowRoot) {
+                            nodes.push(...n.shadowRoot.querySelectorAll(shadowSelector));
+                        }
+                    }
+                    const manyKeys = Array.isArray(keys);
+                    if (!manyKeys) {
+                        keys = [keys];
+                    }
+                    return getNodeValues(nodes, keys, manyKeys);
                 },
 
                 count(...args) {
@@ -217,6 +234,7 @@ export const api = {
 for (const [k, v] of Object.entries({
     count: 0,
     get: 1,
+    shadowRootGet: 2,
     set: 2,
     call: 2,
     sendKey: 2,

@@ -39,19 +39,25 @@ export async function executeInTab(tabId, opts, args, func) {
         tabId = (await call_function('browser.tabs.query', {active: true, currentWindow: true}))[0].id;
     }
 
-    const target = opts?.target ?? {};
-    const result = await call_function('browser.scripting.executeScript', {
+    const target = opts.target ?? {};
+    let result = await call_function('browser.scripting.executeScript', {
         injectImmediately: true,
         target: {tabId, ...target},
         args,
         func,
     });
-    if (!result[0]) {
+
+    if (result.some(x => x.error)) {
+        const error = result.map(x => x.error);
+        throw result.length == 1 ? error[0] : error;
+    } else if (!result.some(x => x)) {
         return null;
-    } else if (result[0].error) {
-        throw result[0].error;
     } else {
-        return result[0].result;
+        result = result.map(x => x.result);
+        if (result.every(Array.isArray)) {
+            result = [].concat(...result);
+        }
+        return result.length == 1 ? result : result;
     }
 }
 
