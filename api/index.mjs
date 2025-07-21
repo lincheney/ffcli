@@ -47,13 +47,13 @@ export async function executeInTab(tabId, opts, args, func) {
         func,
     });
 
-    if (result.some(x => x.error)) {
+    if (result.some(x => x && x.error)) {
         const error = result.map(x => x.error);
         throw result.length == 1 ? error[0] : error;
     } else if (!result.some(x => x)) {
         return null;
     } else {
-        result = result.map(x => x.result);
+        result = result.map(x => x?.result);
         if (result.every(Array.isArray)) {
             result = [].concat(...result);
         }
