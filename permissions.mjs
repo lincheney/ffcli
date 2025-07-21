@@ -81,7 +81,14 @@ const optionalPermissions = new Set([
 ]);
 
 export const customPermissions = new Set(allPermissions.filter(p => !p.includes('.') && !optionalPermissions.has(p)));
+let cachedPermissions = null;
+browser.storage.local.onChanged.addListener(changes => {
+    if (changes.permissions) {
+        cachedPermissions = new Set(changes.permissions.newValue);
+    }
+});
 
 export async function hasPermission(perm) {
-    return (await browser.storage.local.get({permissions: []})).permissions.includes(perm);
+    cachedPermissions ??= new Set((await browser.storage.local.get({permissions: []})).permissions);
+    return cachedPermissions.has(perm);
 }
