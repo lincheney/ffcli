@@ -67,7 +67,7 @@ async def request(flow):
         flow.metadata['firefox_store_id'] = store_id
 
         # fetching the user agent can be expensive
-        user_agent = user_agent or await client.get_user_agent(real=ctx.options.firefox_real_ua)
+        user_agent = user_agent or (await client.get_user_agent(real=ctx.options.firefox_real_ua))[0]
         flow.request.headers['user-agent'] = user_agent
 
         if not ctx.options.firefox_real_proxy:
