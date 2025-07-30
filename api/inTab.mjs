@@ -210,8 +210,8 @@ function makeApi(fn, numArgs) {
 }
 
 export const api = {
-    userAgent(tabId) {
-        return executeApi(this, 'userAgent', tabId)
+    userAgent(tabId, opts) {
+        return executeApi(this, 'userAgent', tabId, opts)
     },
 
     dom: {
