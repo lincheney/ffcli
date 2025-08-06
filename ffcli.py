@@ -136,9 +136,7 @@ class FetchWrapper:
             elif not is_web_request and type == 'response':
                 self.response = data
             elif type == 'responseBody':
-                if isinstance(data, str):
-                    data = base64.b64decode(data)
-                self.body.append(data)
+                self.body.append(base64.b64decode(data) if isinstance(data, str) else data)
 
             yield type, data
 
