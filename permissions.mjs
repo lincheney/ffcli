@@ -2,6 +2,8 @@
 // https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#request-permissions-at-runtime
 // https://searchfox.org/mozilla-central/source/toolkit/components/extensions/ExtensionPermissionMessages.sys.mjs#32
 
+import { browser } from './browser.mjs';
+
 const allPermissions = [
     "activeTab",
     "alarms",
@@ -53,7 +55,7 @@ const allPermissions = [
     "webRequestFilterResponse.serviceWorkerScript"
 ];
 
-const optionalPermissions = new Set([
+export const optionalPermissions = new Set([
     "bookmarks",
     "browserSettings",
     "browsingData",
@@ -68,7 +70,6 @@ const optionalPermissions = new Set([
     "geolocation",
     "history",
     "management",
-    "nativeMessaging",
     "notifications",
     "pkcs11",
     "privacy",

@@ -1,3 +1,5 @@
+import { browser } from './browser.mjs';
+
 export const port = browser.runtime.connectNative("ffcli");
 export const subscribers = {};
 

@@ -1,3 +1,4 @@
+import { browser } from './browser.mjs';
 import { call_function } from './api/index.mjs';
 import { port, subscribers } from './shared.mjs';
 

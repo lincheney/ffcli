@@ -290,7 +290,7 @@ class Client:
 
         def thread():
             send = partial(loop.call_soon_threadsafe, queue.put_nowait)
-            set_cookies = partial(loop.call_soon_threadsafe, self.browser.cookies.set)
+            set_cookies = lambda *args: self.writer.is_closing() or loop.call_soon_threadsafe(self.browser.cookies.set, *args)
 
             class Finish(Exception): pass
 

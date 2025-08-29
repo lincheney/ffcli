@@ -15,9 +15,7 @@
 
     "background": {
         "type": "module",
-        "scripts": [
-            "background.mjs"
-        ]
+        "service_worker": "background.mjs"
     },
 
     "web_accessible_resources": [
@@ -28,7 +26,8 @@
     ],
 
     "optional_host_permissions": [
-        "<all_urls>"
+        "<all_urls>",
+        "https://*/*"
     ],
 
     "permissions": [

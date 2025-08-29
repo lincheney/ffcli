@@ -117,6 +117,7 @@ async def main():
     loop = asyncio.get_event_loop()
 
     # find firefox profile dir
+    import json
     if crash_dir := os.environ.get('MOZ_CRASHREPORTER_EVENTS_DIRECTORY'):
         profile_dir = os.path.dirname(os.path.dirname(crash_dir))
     else:
@@ -126,6 +127,10 @@ async def main():
             dest = os.readlink(dir + fd)
             if dest.endswith('/places.sqlite'):
                 profile_dir = os.path.dirname(dest)
+                break
+            if dest.endswith('/System Profile/SharedStorage'):
+                # chrome
+                profile_dir = os.path.dirname(os.path.dirname(dest))
                 break
 
     transport, protocol = await loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout.buffer)

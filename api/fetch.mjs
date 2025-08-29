@@ -1,3 +1,4 @@
+import { browser } from '../browser.mjs';
 import { hasPermission } from '../permissions.mjs';
 import { call_function, resolve_function, executeInTab } from './index.mjs';
 import { send } from '../shared.mjs';

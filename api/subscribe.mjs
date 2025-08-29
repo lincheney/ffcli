@@ -1,3 +1,4 @@
+import { browser } from '../browser.mjs';
 import { send, subscribers } from '../shared.mjs';
 import { resolve_function} from './index.mjs';
 

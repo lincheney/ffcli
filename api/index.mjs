@@ -1,3 +1,4 @@
+import { browser } from '../browser.mjs';
 import { customPermissions, hasPermission } from '../permissions.mjs';
 import { browser_fetch } from './fetch.mjs';
 import { api as inTabApi } from './inTab.mjs';
@@ -66,6 +67,7 @@ const api = {
     status() { return true; },
 
     browser,
+    chrome: browser,
 
     ...subscribeApi,
     ...inTabApi,

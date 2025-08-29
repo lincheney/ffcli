@@ -1,3 +1,4 @@
+import { browser } from '../browser.mjs';
 import { executeInTab } from './index.mjs';
 
 export async function executeApi(msg, fn, tabId, opts, ...args) {
