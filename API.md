@@ -14,6 +14,21 @@ These are the APIs available in `ffcli`.
     * args:
         * `tabId` - get the user agent from this tab instead
             * this is useful if you have another addon that modifies the user agent inside tabs
+* `localStorage`
+    * `length`
+        * gets `window.localStorage.length`
+    * `key(...)`
+        * calls `window.localStorage.key(...)`
+    * `getItem(...)`
+        * calls `window.localStorage.getitem(...)`
+    * `setItem(...)`
+        * calls `window.localStorage.setitem(...)`
+    * `removeItem(...)`
+        * calls `window.localStorage.removeItem(...)`
+    * `clear(...)`
+        * calls `window.localStorage.clear(...)`
+    * `getAll(...)`
+        * gets `window.localStorage`
 * `dom`
     * `dom.check(path: string, filter?: Object): bool`
         * returns `true` if matching nodes exist

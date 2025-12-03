@@ -81,10 +81,20 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
         const table = {
             userAgent() { return window.navigator.userAgent; },
 
+            localStorage: {
+                length(...args) { return window.localStorage.length; },
+                key(...args) { return window.localStorage.key(...args); },
+                getItem(...args) { return window.localStorage.getItem(...args); },
+                setItem(...args) { return window.localStorage.setItem(...args); },
+                removeItem(...args) { return window.localStorage.removeItem(...args); },
+                clear(...args) { return window.localStorage.clear(...args); },
+                getAll(...args) { return window.localStorage; },
+            },
+
             dom: {
 
-                get(keys, ...args) {
-                    const nodes = getNodes(...args);
+                get(path, keys, ...args) {
+                    const nodes = getNodes(path, ...args);
                     const manyKeys = Array.isArray(keys);
                     if (!manyKeys) {
                         keys = [keys];
@@ -92,9 +102,9 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     return getNodeValues(nodes, keys, manyKeys);
                 },
 
-                shadowRootGet(shadowSelector, keys, ...args) {
+                shadowRootGet(path, shadowSelector, keys, ...args) {
                     const nodes = [];
-                    for (const n of getNodes(...args)) {
+                    for (const n of getNodes(path, ...args)) {
                         if (n.shadowRoot) {
                             nodes.push(...n.shadowRoot.querySelectorAll(shadowSelector));
                         }
@@ -110,16 +120,16 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     return getNodes(...args).length;
                 },
 
-                set(key, value, ...args) {
-                    const nodes = getNodes(...args);
+                set(path, key, value, ...args) {
+                    const nodes = getNodes(path, ...args);
                     for (const node of nodes) {
                         node[key] = value;
                     }
                     return nodes.length;
                 },
 
-                call(key, fnArgs, ...args) {
-                    const nodes = getNodes(...args);
+                call(path, key, fnArgs, ...args) {
+                    const nodes = getNodes(path, ...args);
                     return nodes.map(x => {
                         let value = x[key](...(fnArgs || []));
                         if (value instanceof HTMLElement) {
@@ -151,11 +161,11 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
-                sendKey(key, code, ...args) {
+                sendKey(path, key, code, ...args) {
                     const props = {bubbles: true, composed: true, cancelable: true}
                     const charCode = code ?? key.charCodeAt(0);
                     const keyProps = {key, code: key, charCode, keyCode: charCode, which: charCode, ...props};
-                    const nodes = args.length > 0 ? getNodes(...args) : [document];
+                    const nodes = args.length > 0 ? getNodes(path, ...args) : [document];
                     return nodes.map(x => {
                         x.dispatchEvent(new FocusEvent('focus', props));
                         x.dispatchEvent(new KeyboardEvent('keydown', keyProps));
@@ -168,8 +178,8 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
-                dispatchEvent(type, options, cls, ...args) {
-                    const nodes = getNodes(...args);
+                dispatchEvent(path, type, options, cls, ...args) {
+                    const nodes = getNodes(path, ...args);
                     const event_cls = window[`${cls ?? ''}Event`];
                     return nodes.map(x => {
                         const event = new event_cls(type, options);
@@ -203,16 +213,28 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
 )};
 
 function makeApi(fn, numArgs) {
-    return function(path, ...args) {
-        args.push(...Array(numArgs - args.length + 1)); // make sure this has numArgs, even if args is originally shorter
+    return function(...args) {
+        if (args.length < numArgs + 1) {
+            args.push(...Array(numArgs + 1 - args.length)); // make sure this has numArgs, even if args is originally shorter
+        }
         const {tabId=0, target=null, ...rest} = args.pop() ?? {};
-        return executeApi(this, fn, tabId, {target}, ...args, path, rest);
+        return executeApi(this, fn, tabId, {target}, ...args, rest);
     }
 }
 
 export const api = {
     userAgent(tabId, opts) {
         return executeApi(this, 'userAgent', tabId, opts)
+    },
+
+    localStorage: {
+        length: makeApi('localStorage.length', 0),
+        key: makeApi('localStorage.key', 1),
+        getItem: makeApi('localStorage.getItem', 1),
+        setItem: makeApi('localStorage.setItem', 2),
+        removeItem: makeApi('localStorage.removeItem', 1),
+        clear: makeApi('localStorage.clear', 0),
+        getAll: makeApi('localStorage.getAll', 0),
     },
 
     dom: {
@@ -233,15 +255,15 @@ export const api = {
 };
 
 for (const [k, v] of Object.entries({
-    count: 0,
-    get: 1,
-    shadowRootGet: 2,
-    set: 2,
-    call: 2,
-    sendKey: 2,
-    getAttributes: 0,
-    getComputedStyle: 0,
-    dispatchEvent: 3,
+    count: 1,
+    get: 2,
+    shadowRootGet: 3,
+    set: 3,
+    call: 3,
+    sendKey: 3,
+    getAttributes: 1,
+    getComputedStyle: 1,
+    dispatchEvent: 4,
 })) {
     api.dom[k] = makeApi('dom.' + k, v);
 }
