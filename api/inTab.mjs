@@ -61,13 +61,29 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
             }
         }
 
+        function prepare_for_serialization(value, node) {
+            if (typeof value === 'function') {
+                return value.bind(node)();
+            } else if (value instanceof CSSStyleDeclaration) {
+                const result = {};
+                for (const prop of value) {
+                    result[prop] = value[prop];
+                }
+                return result;
+            } else {
+                return value;
+            }
+        }
+
         function getNodeValues(nodes, keys, manyKeys) {
             return nodes.map(n => {
                 const values = keys.map(k => {
                     let value = k ? n[k] : n;
-                    if (typeof value === 'function') {
-                        value = n[k]();
+                    if (typeof value === 'undefined' && k === 'getComputedStyle') {
+                        value = window.getComputedStyle(n);
                     }
+                    value = prepare_for_serialization(value, n);
+
                     if (value instanceof HTMLElement) {
                         // make some refs
                         value = window.nodes.set_ref(value);
@@ -151,14 +167,7 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                 },
 
                 getComputedStyle(...args) {
-                    return getNodes(...args).map(x => {
-                        const result = {};
-                        const style = window.getComputedStyle(x);
-                        for (const prop of style) {
-                            result[prop] = style[prop];
-                        }
-                        return result;
-                    });
+                    return getNodes(...args).map(x => prepare_for_serialization(window.getComputedStyle(x)));
                 },
 
                 sendKey(path, key, code, ...args) {
