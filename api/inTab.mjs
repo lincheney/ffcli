@@ -84,7 +84,7 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     }
                     value = prepare_for_serialization(value, n);
 
-                    if (value instanceof HTMLElement) {
+                    if (value instanceof HTMLElement || value instanceof SVGElement) {
                         // make some refs
                         value = window.nodes.set_ref(value);
                     }
@@ -148,7 +148,7 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     const nodes = getNodes(path, ...args);
                     return nodes.map(x => {
                         let value = x[key](...(fnArgs || []));
-                        if (value instanceof HTMLElement) {
+                        if (value instanceof HTMLElement || value instanceof SVGElement) {
                             // make some refs
                             value = window.nodes.set_ref(value);
                         }
