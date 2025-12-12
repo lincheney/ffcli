@@ -15,7 +15,9 @@
 
     "background": {
         "type": "module",
-        "service_worker": "background.mjs"
+        "scripts": [
+            "background.mjs"
+        ]
     },
 
     "web_accessible_resources": [
