@@ -278,7 +278,7 @@ class Client:
         loop = asyncio.get_event_loop()
 
         cookie_list = await self.browser.cookies.getAll({'url': url, 'storeId': store_id})
-        user_agent = await self.get_user_agent(real=real_ua)
+        user_agent = (await self.get_user_agent(real=real_ua))[0]
 
         request = urllib.request.Request(url, method=method, headers=headers, data=body)
         request.headers['user-agent'] = user_agent
