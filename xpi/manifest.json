@@ -10,13 +10,13 @@
     },
 
     "options_ui": {
-        "page": "options.html"
+        "page": "src/options.html"
     },
 
     "background": {
         "type": "module",
         "scripts": [
-            "background.mjs"
+            "src/background.mjs"
         ]
     },
 

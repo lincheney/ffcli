@@ -1,0 +1,86 @@
+{
+    "manifest_version": 3,
+    "name": "ffcli",
+    "version": "1.2.5",
+
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "ffcli@lincheney"
+        }
+    },
+
+    "options_ui": {
+        "page": "src/options.html"
+    },
+
+    "background": {
+        "type": "module",
+        "service_worker": "src/background.mjs"
+    },
+
+    "web_accessible_resources": [
+        {
+            "matches": ["<all_urls>"],
+            "resources": ["null"]
+        }
+    ],
+
+    "optional_host_permissions": [
+        "<all_urls>",
+        "https://*/*"
+    ],
+
+    "permissions": [
+        "nativeMessaging",
+        "storage",
+
+        "activeTab",
+        "alarms",
+        "background",
+        "captivePortal",
+        "contentSettings",
+        "contextMenus",
+        "contextualIdentities",
+        "cookies",
+        "debugger",
+        "declarativeNetRequestWithHostAccess",
+        "dns",
+        "identity",
+        "idle",
+        "menus",
+        "menus.overrideContext",
+        "pageCapture",
+        "scripting",
+        "search",
+        "theme",
+        "webRequest"
+    ],
+
+    "optional_permissions": [
+        "bookmarks",
+        "browserSettings",
+        "browsingData",
+        "clipboardRead",
+        "clipboardWrite",
+        "declarativeNetRequest",
+        "declarativeNetRequestFeedback",
+        "devtools",
+        "downloads",
+        "downloads.open",
+        "find",
+        "geolocation",
+        "history",
+        "management",
+        "notifications",
+        "pkcs11",
+        "privacy",
+        "proxy",
+        "sessions",
+        "tabs",
+        "tabHide",
+        "topSites",
+        "webNavigation"
+    ]
+
+}
+
