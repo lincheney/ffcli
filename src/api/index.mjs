@@ -76,7 +76,7 @@ const api = {
         if (tabId) {
             return inTabApi.userAgent(tabId);
         }
-        return window.navigator.userAgent;
+        return (navigator ?? window.navigator).userAgent;
     },
 
     fetch: browser_fetch,
