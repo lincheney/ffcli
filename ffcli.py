@@ -82,7 +82,7 @@ class Response:
         while item := await queue.get():
             data = item.get('data')
             if item.get('type') == 'error':
-                raise Error(data)
+                raise Error(json.dumps(data, indent=2))
             else:
                 yield data
 
