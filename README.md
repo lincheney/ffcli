@@ -50,6 +50,10 @@ or [scripting against the library](#using-the-library).
 You may want to skip to look at [example usage](#example-usage)
 or look at what the [API](API.md).
 
+Different Firefox profiles will have their own socket which is always located in the profile directory.
+When using `ffcli.py` profiles located in the default location can be specified by name (i.e. `ffcli.py -P PROFILE_NAME`)
+but profiles located in other places must be specified by path.
+
 ### Using the CLI
 
 Using the `ffcli.py` CLI is the most straightforward.
@@ -161,3 +165,24 @@ This allows the server to *stream* data e.g. like a generator.
     * using cookies from a container: `./ffcli.py curl https://httpbin.org/anything -v --container XYZ`
     * by running under a mitmproxy: `./ffcli.py with-http-proxy -- curl https://httpbin.org/anything -v`
 * monitor web requests being made: `./ffcli.py do subscribe browser.webRequest.onBeforeRequest null 'urls: ["<all_urls>"]' [] | jq -r .[].url`
+
+## Chrome
+
+The web extension can also work on Chrome and possibly Chrome-variants.
+
+* Installation: currently you will need to install files in [./chrome/](./chrome/) as an *unpacked extension*.
+    See [here](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked) for instructions.
+* Native messaging:
+    * The manifest is slightly different and you must obtain the extension ID from <chrome://extensions>:
+        ```json
+        {
+          "name": "ffcli",
+          "description": "ffcli",
+          "path": "/path/to/ffcli-server",
+          "type": "stdio",
+          "allowed_origins": ["chrome-extension://verylongextensionid/"]
+        }
+        ```
+    * See [here](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging) for where to put this file
+* Unlike Firefox, Chrome does not have a builtin permissions page so *all* permissions are handled by the `Extension options` page.
+* When using `ffcli.py` you *must always* specify the path to the profile directory, name lookups only happen for Firefox.
