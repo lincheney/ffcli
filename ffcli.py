@@ -99,16 +99,19 @@ class Response:
 
 class RequestBuilder:
     def __init__(self, client, key):
-        self.client = client
-        self.key = key
+        self.__client = client
+        self.__key = key
+
+    def make_request_builder(self, key):
+        return RequestBuilder(self.__client, self.__key + '.' + key)
 
     def __getattr__(self, key):
-        return RequestBuilder(self.client, self.key + '.' + key)
+        return self.make_request_builder(key)
 
     def __call__(self, *args, **kwargs):
         if kwargs:
             args += (kwargs,)
-        return Response(self.client, self.key, args)
+        return Response(self.__client, self.__key, args)
 
 class FetchWrapper:
     def __init__(self, stream):
@@ -206,17 +209,17 @@ class Client:
         return cls(path)
 
     def __init__(self, profile_dir):
-        self.sock_path = profile_dir + '/ffcli.sock'
-        self.reader = None
-        self.writer = None
-        self.id = 0
-        self.queues = {}
-        self.running = False
+        self.__sock_path = profile_dir + '/ffcli.sock'
+        self.__reader = None
+        self.__writer = None
+        self.__id = 0
+        self.__queues = {}
+        self.__running = False
 
     async def _connect(self):
-        if not self.reader or not self.writer:
-            self.reader, self.writer = await asyncio.open_unix_connection(self.sock_path, limit=float('inf'))
-        return self.reader, self.writer
+        if not self.__reader or not self.__writer:
+            self.__reader, self.__writer = await asyncio.open_unix_connection(self.__sock_path, limit=float('inf'))
+        return self.__reader, self.__writer
 
     async def __aenter__(self):
         await self._connect()
@@ -224,42 +227,47 @@ class Client:
         return self
 
     async def __aexit__(self, *args):
-        if self.writer:
-            self.writer.close()
-            await self.writer.wait_closed()
+        if self.__writer:
+            self.__writer.close()
+            await self.__writer.wait_closed()
 
     async def start(self):
-        if not self.running:
-            self.running = asyncio.Future()
+        if not self.__running:
+            self.__running = asyncio.Future()
             await self.__aenter__()
-            self.running.set_result(True)
-        await self.running
+            self.__running.set_result(True)
+        await self.__running
 
     async def stop(self):
-        if self.running:
+        if self.__running:
             await self.__aexit__()
 
     async def _read_from_socket(self):
         reader, _ = await self._connect()
         while line := await reader.readline():
             if (data := parse_json_object(line)) is not None:
-                if queue := self.queues.get(data.get('id')):
+                if queue := self.__queues.get(data.get('id')):
                     await queue.put(data)
                     if data.get('complete'):
                         await queue.put(None)
-                        self.queues.pop(data.get('id'))
+                        self.__queues.pop(data.get('id'))
+        for queue in self.__queues.values():
+            queue.shutdown()
 
     async def _execute(self, fn, *args):
-        self.id += 1
+        self.__id += 1
         _, writer = await self._connect()
-        writer.write(json.dumps({'id': self.id, 'fn': fn, 'args': args}).encode('utf8'))
+        writer.write(json.dumps({'id': self.__id, 'fn': fn, 'args': args}).encode('utf8'))
         writer.write(b'\n')
         await writer.drain()
-        self.queues[self.id] = asyncio.Queue()
-        return self.queues[self.id]
+        self.__queues[self.__id] = asyncio.Queue()
+        return self.__queues[self.__id]
+
+    def make_request_builder(self, key):
+        return RequestBuilder(self, key)
 
     def __getattr__(self, key):
-        return RequestBuilder(self, key)
+        return self.make_request_builder(key)
 
     def subscribe(self, event, num_events=None, args=None, **kwargs):
         kwargs = {**(args or {}), **kwargs}
@@ -290,7 +298,7 @@ class Client:
 
         def thread():
             send = partial(loop.call_soon_threadsafe, queue.put_nowait)
-            set_cookies = lambda *args: self.writer.is_closing() or loop.call_soon_threadsafe(self.browser.cookies.set, *args)
+            set_cookies = lambda *args: self.__writer.is_closing() or loop.call_soon_threadsafe(self.browser.cookies.set, *args)
 
             class Finish(Exception): pass
 
@@ -415,7 +423,7 @@ def with_client(fn):
 class actions:
     @with_client
     async def do(client, args):
-        async for data in getattr(client, args.fn)(*args.args).iter():
+        async for data in client.make_request_builder(args.fn)(*args.args).iter():
             print(json.dumps(data), flush=True)
 
     def status(args):
@@ -453,7 +461,7 @@ class actions:
         if not a:
             a.append({})
 
-        request = getattr(client, fn)(*a)
+        request = client.make_request_builder(fn)(*a)
         if args.CMD == 'list':
             for x in (await request):
                 if all(x[k] == v for k, v in props.items()):
