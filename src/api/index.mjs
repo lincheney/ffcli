@@ -72,6 +72,11 @@ const api = {
     ...subscribeApi,
     ...inTabApi,
 
+    id() {
+        return browser.runtime.id;
+    },
+    reload: browser.runtime.reload,
+
     userAgent(tabId=null) {
         if (tabId) {
             return inTabApi.userAgent(tabId);

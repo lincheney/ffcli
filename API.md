@@ -4,11 +4,16 @@ These are the APIs available in `ffcli`.
 
 * `status(): true`
     * returns `true`
-* `browser`
+* `browser` / `chrome`
     * [web extension APIs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Browser_support_for_JavaScript_APIs)
     * the following are not supported:
         * `browser.runtime.connectNative`
         * `browser.storage.*`
+* `reload`
+    * reload the current extension
+    * the socket will be closed and you will lose all active connections, including long-running `subscribe`s
+* `id`
+    * get this extension id
 * `userAgent(tabId?: number): string`
     * returns the user agent
     * args:
