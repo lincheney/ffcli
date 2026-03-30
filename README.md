@@ -53,6 +53,8 @@ or look at what the [API](API.md).
 Different Firefox profiles will have their own socket which is always located in the profile directory.
 When using `ffcli.py` profiles located in the default location can be specified by name (i.e. `ffcli.py -P PROFILE_NAME`)
 but profiles located in other places must be specified by path.
+If you are not sure where it is, you can find it in Firefox in the extension's `Preferences` tab
+or in Chrome in the `Extension Options` page.
 
 ### Using the CLI
 
