@@ -22,25 +22,36 @@ def parse_json_object(data):
         return
     return data
 
+async def write_item_to_stdout(item, stdout):
+    data = json.dumps(item).encode('utf8')
+    stdout.write(struct.pack('I', len(data)))
+    stdout.write(data)
+    logging.info('sent request: %s', data)
+    await stdout.drain()
+
 async def write_to_stdout(stdout):
     while True:
         item = await stdout_queue.get()
-        data = json.dumps(item).encode('utf8')
-        stdout.write(struct.pack('I', len(data)))
-        stdout.write(data)
-        logging.info('sent request: %s', data)
-        await stdout.drain()
+        await write_item_to_stdout(item, stdout)
+
+async def read_item_from_stdin(stdin):
+    if not (length := await stdin.read(4)):
+        raise EOFError
+
+    length, = struct.unpack('I', length)
+    data = await stdin.readexactly(length)
+
+    logging.info('got extension reply: %r', data)
+    data = parse_json_object(data)
+    return data
 
 async def read_from_stdin(stdin):
     while True:
-        if not (length := await stdin.read(4)):
+        try:
+            data = await read_item_from_stdin(stdin)
+        except EOFError:
             break
 
-        length, = struct.unpack('I', length)
-        data = await stdin.readexactly(length)
-
-        logging.info('got extension reply: %r', data)
-        data = parse_json_object(data)
         if data is None:
             continue
 
@@ -117,7 +128,6 @@ async def main():
     loop = asyncio.get_event_loop()
 
     # find firefox profile dir
-    import json
     if crash_dir := os.environ.get('MOZ_CRASHREPORTER_EVENTS_DIRECTORY'):
         profile_dir = os.path.dirname(os.path.dirname(crash_dir))
     else:
@@ -132,6 +142,7 @@ async def main():
                 # chrome
                 profile_dir = os.path.dirname(os.path.dirname(dest))
                 break
+    socket_path = profile_dir + '/ffcli.sock'
 
     transport, protocol = await loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout.buffer)
     stdout = asyncio.streams.StreamWriter(transport, protocol, None, loop)
@@ -140,7 +151,11 @@ async def main():
     protocol = asyncio.StreamReaderProtocol(stdin)
     await loop.connect_read_pipe(lambda: protocol, sys.stdin.buffer)
 
-    server = await asyncio.start_unix_server(worker, profile_dir + '/ffcli.sock')
+    # handshake
+    await write_item_to_stdout({'socket_path': socket_path}, stdout)
+    data = await read_item_from_stdin(stdin)
+
+    server = await asyncio.start_unix_server(worker, socket_path)
     async with server:
         tasks = [server.serve_forever(), write_to_stdout(stdout)]
         tasks = [asyncio.create_task(t) for t in tasks]

@@ -3,9 +3,18 @@ import { call_function } from './api/index.mjs';
 import { port, subscribers } from './shared.mjs';
 
 browser.runtime.onMessage.addListener(port.postMessage);
+// handshake
+port.postMessage({});
+let received_handshake = false;
 
 port.onMessage.addListener((msg) => {
     console.log(`Received: %j`, msg);
+
+    if (!received_handshake) {
+        received_handshake = true;
+        browser.storage.local.set({handshake: msg});
+        return;
+    }
 
     if (msg.type == 'disconnect') {
         // unsubscribe from everything

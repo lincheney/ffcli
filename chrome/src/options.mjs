@@ -14,7 +14,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         `;
     }
 
-    const settings = await browser.storage.local.get({permissions: []});
+    const settings = await browser.storage.local.get({permissions: [], handshake: {}});
+    document.querySelector('#socket-path').innerText = settings.handshake.socket_path;
+
     for (const checkbox of document.querySelectorAll('#permissions input[type="checkbox"]')) {
         checkbox.checked = settings.permissions.includes(checkbox.id);
     }
