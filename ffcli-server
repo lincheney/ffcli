@@ -138,7 +138,7 @@ async def main():
             if dest.endswith('/places.sqlite'):
                 profile_dir = os.path.dirname(dest)
                 break
-            if dest.endswith('/System Profile/SharedStorage'):
+            if dest.endswith('/SharedStorage'):
                 # chrome
                 profile_dir = os.path.dirname(os.path.dirname(dest))
                 break
