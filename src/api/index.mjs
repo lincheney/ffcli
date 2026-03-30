@@ -8,10 +8,10 @@ import { send } from '../shared.mjs';
 async function _resolve_function(string) {
     const fn = (string || '').split('.');
 
-    if (fn[0] == 'browser') {
+    if (fn[0] == 'browser' || fn[0] == 'chrome') {
 
         // do not allow access to storage or runtime.connectNative
-        if (fn[1] == 'storage' || (fn[1] == 'runtime' && fn[2] == 'connectNative')) {
+        if (fn[1] === 'storage' || (fn[1] === 'runtime' && fn[2] === 'connectNative')) {
             return;
         }
 
