@@ -45,6 +45,7 @@
         "debugger",
         "declarativeNetRequestWithHostAccess",
         "dns",
+        "gcm",
         "identity",
         "idle",
         "menus",
