@@ -204,6 +204,10 @@ class Client:
                 if 'Path' in v and (v.get('Name') == path or (not path and v.get('Default') == '1')):
                     path = os.path.join(os.path.expanduser('~/.mozilla/firefox/'), v.get('Path'))
                     break
+
+        if os.path.basename(path) == 'ffcli.sock':
+            path = os.path.dirname(path)
+
         if not os.path.exists(os.path.join(path, 'ffcli.sock')):
             raise ValueError('invalid profile or not running: %s' % path)
         return cls(path)
