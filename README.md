@@ -2,8 +2,9 @@
 
 This is a web extension to control firefox from the CLI.
 
-This is *only* supported on firefox (not chromium etc)
+This is supported on firefox
 and *only* on Unix (and possibly only Linux).
+It *may* [work on Chrome-variants](#chrome).
 
 This web extension drops a Unix socket into your firefox profile directory.
 Commands sent to that socket will be run by the web extension.
@@ -39,6 +40,8 @@ Prerequisites:
     * run `/path/to/ffcli.py -P /path/to/firefox/profile status`
 1. (Optional) install [ruamel.yaml](https://yaml.readthedocs.io/en/latest/install/)
 1. (Optional) install [mitmproxy](https://docs.mitmproxy.org/stable/overview-installation/)
+
+For installation for Chrome (and its variants), see *in addition* the [Chrome](#chrome) section.
 
 ## Usage
 
