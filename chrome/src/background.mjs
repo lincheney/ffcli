@@ -4,7 +4,18 @@ import { port, subscribers } from './shared.mjs';
 
 browser.runtime.onMessage.addListener(port.postMessage);
 // handshake
-port.postMessage({});
+(async function() {
+    let id = (await browser.storage.local.get('ffcliId')).ffcliId;
+    if (!id) {
+        id = Math.random().toString();
+        await browser.storage.local.set({ffcliId: id});
+    }
+    await port.postMessage({
+        ffcliId: id,
+        extensionId: browser.runtime.id,
+    });
+})();
+
 let received_handshake = false;
 
 port.onMessage.addListener((msg) => {

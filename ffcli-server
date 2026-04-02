@@ -124,25 +124,19 @@ async def worker(reader, writer):
     except (ConnectionResetError, BrokenPipeError):
         pass
 
+def find_chrome_profile(profiles, data):
+    marker = data['ffcliId'].encode('utf8')
+    for profile in profiles:
+        dir = os.path.join(profile, 'Local Extension Settings', data['extensionId'])
+        for file in os.listdir(dir):
+            file = os.path.join(dir, file)
+            if file.endswith('.log') and os.path.isfile(file):
+                with open(file, 'rb') as file:
+                    if marker in file.read():
+                        return dir
+
 async def main():
     loop = asyncio.get_event_loop()
-
-    # find firefox profile dir
-    if crash_dir := os.environ.get('MOZ_CRASHREPORTER_EVENTS_DIRECTORY'):
-        profile_dir = os.path.dirname(os.path.dirname(crash_dir))
-    else:
-        dir = f'/proc/{os.getppid()}/fd/'
-        profile_dir = None
-        for fd in os.listdir(dir):
-            dest = os.readlink(dir + fd)
-            if dest.endswith('/places.sqlite'):
-                profile_dir = os.path.dirname(dest)
-                break
-            if dest.endswith('/SharedStorage'):
-                # chrome
-                profile_dir = os.path.dirname(os.path.dirname(dest))
-                break
-    socket_path = profile_dir + '/ffcli.sock'
 
     transport, protocol = await loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout.buffer)
     stdout = asyncio.streams.StreamWriter(transport, protocol, None, loop)
@@ -151,9 +145,43 @@ async def main():
     protocol = asyncio.StreamReaderProtocol(stdin)
     await loop.connect_read_pipe(lambda: protocol, sys.stdin.buffer)
 
-    # handshake
-    await write_item_to_stdout({'socket_path': socket_path}, stdout)
     data = await read_item_from_stdin(stdin)
+    profile_dir = None
+
+    # find firefox profile dir
+    if crash_dir := os.environ.get('MOZ_CRASHREPORTER_EVENTS_DIRECTORY'):
+        profile_dir = os.path.dirname(os.path.dirname(crash_dir))
+    else:
+        dir = f'/proc/{os.getppid()}/fd/'
+        chrome_dirs = []
+        for fd in os.listdir(dir):
+            try:
+                dest = os.readlink(dir + fd)
+            except FileNotFoundError:
+                continue
+            if dest.endswith('/places.sqlite'):
+                profile_dir = os.path.dirname(dest)
+                break
+            if dest.endswith('/SharedStorage'):
+                # chrome
+                chrome_dirs.append(os.path.dirname(dest))
+
+        if len(chrome_dirs) == 1:
+            profile_dir = chrome_dirs[0]
+        elif len(chrome_dirs) > 1:
+            # errmmm ok
+            # chrome will have set an id into storage, we'll just have to search for it on disk
+            profile_dir = find_chrome_profile(chrome_dirs, data)
+
+    if profile_dir is None:
+        raise Exception('could not determine path to put the ffcli.sock')
+
+    socket_path = profile_dir + '/ffcli.sock'
+
+    # handshake
+    await write_item_to_stdout({
+        'socket_path': socket_path,
+    }, stdout)
 
     server = await asyncio.start_unix_server(worker, socket_path)
     async with server:
