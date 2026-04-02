@@ -133,7 +133,7 @@ def find_chrome_profile(profiles, data):
             if file.endswith('.log') and os.path.isfile(file):
                 with open(file, 'rb') as file:
                     if marker in file.read():
-                        return dir
+                        return profile
 
 async def main():
     loop = asyncio.get_event_loop()
