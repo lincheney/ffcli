@@ -25,7 +25,8 @@ import base64
 import warnings
 
 class Error(Exception):
-    pass
+    def __repr__(self):
+        return 'Error: ' + json.dumps(self.args[0], indent=2)
 
 def parse_json_object(data):
     try:
@@ -82,7 +83,7 @@ class Response:
         while item := await queue.get():
             data = item.get('data')
             if item.get('type') == 'error':
-                raise Error(json.dumps(data, indent=2))
+                raise Error(data)
             else:
                 yield data
 
