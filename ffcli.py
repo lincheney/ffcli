@@ -25,7 +25,7 @@ import base64
 import warnings
 
 class Error(Exception):
-    def __repr__(self):
+    def __str__(self):
         return 'Error: ' + json.dumps(self.args[0], indent=2)
 
 def parse_json_object(data):
