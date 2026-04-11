@@ -6,6 +6,7 @@ import sys
 import asyncio
 import json
 import logging
+import traceback
 
 _id = 1
 stdout_queue = asyncio.Queue()
@@ -22,10 +23,14 @@ def parse_json_object(data):
         return
     return data
 
-async def write_item_to_stdout(item, stdout):
+def write_item_to_stdout_sync(item, stdout):
     data = json.dumps(item).encode('utf8')
     stdout.write(struct.pack('I', len(data)))
     stdout.write(data)
+    return data
+
+async def write_item_to_stdout(item, stdout):
+    data = write_item_to_stdout_sync(item, stdout)
     logging.info('sent request: %s', data)
     await stdout.drain()
 
@@ -197,4 +202,8 @@ async def main():
                 pass
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        write_item_to_stdout_sync({'exception': traceback.format_exception(e)}, sys.stdout.buffer)
+        raise
