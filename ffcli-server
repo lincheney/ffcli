@@ -133,6 +133,9 @@ def find_chrome_profile(profiles, data):
     marker = data['ffcliId'].encode('utf8')
     for profile in profiles:
         dir = os.path.join(profile, 'Local Extension Settings', data['extensionId'])
+        if not os.path.isdir(dir):
+            continue
+
         for file in os.listdir(dir):
             file = os.path.join(dir, file)
             if file.endswith('.log') and os.path.isfile(file):
