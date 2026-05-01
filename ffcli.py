@@ -125,7 +125,7 @@ class FetchWrapper:
         return anext(aiter(self.iter()))
 
     async def iter(self):
-        is_web_request = True
+        is_web_request = False
         async for data in self.stream:
             if data is None:
                 continue

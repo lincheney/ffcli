@@ -82,7 +82,7 @@ async def request(flow):
             if response := REDIRECTS.pop(flow.request.url, None):
                 pass
             else:
-                response = await client.fetch(
+                response = client.fetch(
                     flow.request.url,
                     method = flow.request.method,
                     headers = dict(flow.request.headers.items()),
@@ -90,15 +90,15 @@ async def request(flow):
                     cookieStoreId = store_id,
                 )
 
-                if redirected := await response.redirected():
-                    # need to do a redirect
-                    url = await response.url()
-                    REDIRECTS[url] = response
-                    flow.response = Response.make(302, b'', {'Location': url})
-                    return
+                #  if redirected := await response.redirected():
+                    #  # need to do a redirect
+                    #  url = await response.url()
+                    #  REDIRECTS[url] = response
+                    #  flow.response = Response.make(302, b'', {'Location': url})
+                    #  return
 
             body = b''
-            while data := await response.read():
+            async for data in response.read():
                 body += data
 
             flow.response = Response.make(
