@@ -71,7 +71,7 @@ async def request(flow):
         flow.request.headers['user-agent'] = user_agent
 
         if not ctx.options.firefox_real_proxy:
-            cookie_list = await client.browser.cookies.getAll({'url': flow.request.url, 'storeId': store_id})
+            cookie_list = await client.browser.cookies.getAll({'url': flow.request.url, 'storeId': store_id, 'partitionKey': {}})
             flow.request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
             flow.request.headers['user-agent'] = user_agent
 
