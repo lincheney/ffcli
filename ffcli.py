@@ -491,7 +491,7 @@ class actions:
         if args.container:
             store_id = (await client.browser.contextualIdentities.query({'name': args.container}))[0]['cookieStoreId']
         elif args.tab:
-            store_id = (await client.browser.tabs.get(args.tab))['cookieStoreId']
+            store_id = (await client.browser.tabs.get(args.tab)).get('cookieStoreId')
 
         kwargs = dict(
             url=args.url,
