@@ -89,7 +89,6 @@ export async function browser_fetch(url, opts={}) {
 
     opts.body = opts.body && atob(opts.body);
 
-    console.debug("DEBUG(pried) \t%s\t= %o", "this", this);
     if ((opts.tabId ?? null) !== null) {
         await webRequestWrapper(url, opts, {tabId: opts.tabId}, async (url, opts) => {
             await executeInTab(opts.tabId, {target: opts.target}, [this, url, opts, null], run_fetch);
