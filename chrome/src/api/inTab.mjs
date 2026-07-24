@@ -215,10 +215,16 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
             throw new Error(`no such function ${fn}`);
         }
 
-        let value = func.bind(msg)(...(args || []));
-        if (value instanceof Promise) {
-            value = await value;
+        let value;
+        try {
+            value = func.bind(msg)(...(args || []));
+            if (value instanceof Promise) {
+                value = await value;
+            }
+        } catch(e) {
+            throw `${e.toString()}\n${e.stack.trim()}`;
         }
+
         if (value && !JSON.stringify(value)) {
             value = `[${typeof value}]`;
         } else if (typeof value === 'object' && value.__proto__ !== Object.prototype) {
