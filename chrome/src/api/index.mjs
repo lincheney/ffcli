@@ -41,25 +41,12 @@ export async function executeInTab(tabId, opts, args, func) {
     }
 
     const target = opts?.target ?? {};
-    let result = await call_function('browser.scripting.executeScript', {
+    return await call_function('browser.scripting.executeScript', {
         injectImmediately: true,
         target: {tabId, ...target},
         args,
         func,
     });
-
-    if (result.some(x => x && x.error)) {
-        const error = result.map(x => x.error);
-        throw result.length == 1 ? error[0] : error;
-    } else if (!result.some(x => x)) {
-        return null;
-    } else {
-        result = result.map(x => x?.result);
-        if (result.every(Array.isArray)) {
-            result = [].concat(...result);
-        }
-        return result.length == 1 ? result : result;
-    }
 }
 
 
