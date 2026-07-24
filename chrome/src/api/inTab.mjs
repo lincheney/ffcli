@@ -261,7 +261,7 @@ export const api = {
 
     dom: {
         async check(...args) {
-            return await api.dom.count(...args) > 0;
+            return (await api.dom.count(...args)).some(x => x.result > 0);
         },
         async wait(path, {timeout=0, ...args}={}) {
             const interval = 500;
