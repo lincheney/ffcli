@@ -78,7 +78,7 @@ These are the APIs available in `ffcli`.
         * args:
             * `key` - the [key to send](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key)
             * `code` - the key code to send, if not given is (inaccurately) computed from `key.charCodeAt(0)`
-    * `dom.dispatchEvent(path: string, type: string, eventType?: string, options: object, filter?: Object): unknown`
+    * `dom.dispatchEvent(path: string, type: string, options: object, eventType?: string, filter?: Object): unknown`
         * calls `dispatchEvent` with an event `new Event(type, options)`
         * if `eventType` is given, then a `new ${eventType}Event` is created, e.g. to make a `MouseEvent`, pass in `Mouse`
         * example: `dom.dispatchEvent('button', 'focus', {})`
