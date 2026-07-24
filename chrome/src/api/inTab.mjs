@@ -54,6 +54,13 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                             nodes = nodes.filter(x => window.nodes.get_ref(x) == filter.ref);
                         }
                     }
+
+                    let attrs = filter.attrs ?? {};
+                    for (const [key, value] of Object.entries(attrs)) {
+                        let regex = new RegExp(value);
+                        nodes = nodes.filter(x => regex.test(x[key]));
+                    }
+
                 }
                 return nodes;
             } catch(e) {
