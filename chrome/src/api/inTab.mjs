@@ -239,8 +239,8 @@ function makeApi(fn, numArgs) {
         if (args.length < numArgs + 1) {
             args.push(...Array(numArgs + 1 - args.length)); // make sure this has numArgs, even if args is originally shorter
         }
-        const {tabId=0, target=null, ...rest} = args.pop() ?? {};
-        return executeApi(this, fn, tabId, {target}, ...args, rest);
+        const {tabId=0, target=null, world=null, ...rest} = args.pop() ?? {};
+        return executeApi(this, fn, tabId, {target, world}, ...args, rest);
     }
 }
 
