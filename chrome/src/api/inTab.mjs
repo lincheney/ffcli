@@ -48,7 +48,13 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                             parent = window.nodes.get_obj(filter.parent)
                         }
 
-                        nodes = Array.from(parent ? parent.querySelectorAll(path) : []);
+                        if (path === ':document') {
+                            nodes = Array.from(filter.parent ? [] : [document]);
+                        } else if (path === ':window') {
+                            nodes = Array.from(filter.parent ? [] : [window]);
+                        } else {
+                            nodes = Array.from(parent ? parent.querySelectorAll(path) : []);
+                        }
 
                         if (filter.ref) {
                             nodes = nodes.filter(x => window.nodes.get_ref(x) == filter.ref);
@@ -91,7 +97,7 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     }
                     value = prepare_for_serialization(value, n);
 
-                    if (value instanceof HTMLElement || value instanceof SVGElement || value instanceof HTMLDocument) {
+                    if (value instanceof HTMLElement || value instanceof SVGElement || value instanceof HTMLDocument || value instanceof Window) {
                         // make some refs
                         value = window.nodes.set_ref(value);
                     }
