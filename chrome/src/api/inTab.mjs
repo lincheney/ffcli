@@ -151,6 +151,14 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     return nodes.length;
                 },
 
+                defineProperty(path, key, prop, ...args) {
+                    const nodes = getNodes(path, ...args);
+                    for (const node of nodes) {
+                        Object.defineProperty(node, key, prop);
+                    }
+                    return nodes.length;
+                },
+
                 call(path, key, fnArgs, ...args) {
                     const nodes = getNodes(path, ...args);
                     return nodes.map(x => {
@@ -281,6 +289,7 @@ for (const [k, v] of Object.entries({
     get: 2,
     shadowRootGet: 3,
     set: 3,
+    defineProperty: 3,
     call: 3,
     sendKey: 3,
     getAttributes: 1,
