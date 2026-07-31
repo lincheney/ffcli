@@ -259,8 +259,8 @@ function makeApi(fn, numArgs) {
 }
 
 export const api = {
-    userAgent(tabId, opts) {
-        return executeApi(this, 'userAgent', tabId, opts)
+    async userAgent(tabId, opts) {
+        return (await executeApi(this, 'userAgent', tabId, opts))[0].result;
     },
 
     localStorage: {
