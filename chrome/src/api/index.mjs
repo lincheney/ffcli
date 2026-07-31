@@ -41,11 +41,11 @@ export async function executeInTab(tabId, opts, args, func) {
     }
 
     const target = opts?.target ?? {};
-    const world = opts?.world ?? {};
+    const world = opts?.world;
     return await call_function('browser.scripting.executeScript', {
         injectImmediately: true,
         target: {tabId, ...target},
-        world: opts.world,
+        world,
         args,
         func,
     });
