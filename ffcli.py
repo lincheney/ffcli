@@ -291,12 +291,13 @@ class Client:
         loop = asyncio.get_event_loop()
 
         cookie_list = await self.browser.cookies.getAll({'url': url, 'storeId': store_id})
-        user_agent = (await self.get_user_agent(real=real_ua))[0]
+        user_agent = (await self.get_user_agent(real=real_ua))
 
-        request = urllib.request.Request(url, method=method, headers=headers or {}, data=body)
-        request.headers['user-agent'] = user_agent
+        headers = headers or {}
+        headers['user-agent'] = user_agent
         if cookie_list:
-            request.headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
+            headers["cookie"] = '; '.join(c['name']+'='+c['value'] for c in cookie_list)
+        request = urllib.request.Request(url, method=method, headers=headers or {}, data=body)
 
 
         queue = asyncio.Queue()
