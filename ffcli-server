@@ -170,7 +170,7 @@ async def main():
             if dest.endswith('/places.sqlite'):
                 profile_dir = os.path.dirname(dest)
                 break
-            if dest.endswith('/SharedStorage'):
+            if os.path.isdir(os.path.join(os.path.dirname(dest), 'Local Extension Settings')):
                 # chrome
                 chrome_dirs.append(os.path.dirname(dest))
 
