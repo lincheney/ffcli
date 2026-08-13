@@ -616,11 +616,11 @@ class actions:
         kwargs = {'format': args.format, 'scale': args.scale}
 
         if args.selector:
-            root_rect = (await client.dom.call(':root', 'getBoundingClientRect'))[0]
+            root_rect = (await client.dom.call(':root', 'getBoundingClientRect'))[0]['result'][0]
             if args.selector == ':root':
                 node_rect = root_rect
             else:
-                node_rect = (await client.dom.call(args.selector, 'getBoundingClientRect'))[0]
+                node_rect = (await client.dom.call(args.selector, 'getBoundingClientRect'))[0]['result'][0]
             kwargs['rect'] = dict(
                 x=node_rect['x'] - root_rect['x'],
                 y=node_rect['y'] - root_rect['y'],
