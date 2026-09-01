@@ -50,8 +50,8 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
 
                         if (path === ':document') {
                             nodes = Array.from(filter.parent ? [] : [document]);
-                        } else if (path === ':window') {
-                            nodes = Array.from(filter.parent ? [] : [window]);
+                        } else if (path.match(/^:window(\.\w+)*$/)) {
+                            nodes = Array.from(filter.parent ? [] : [resolve_value(path.slice(1), {window})]);
                         } else {
                             nodes = Array.from(parent ? parent.querySelectorAll(path) : []);
                         }
@@ -220,11 +220,11 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
             },
         };
 
-        function resolve_function(string) {
-            return (string || '').split('.').reduce((x, y) => x && x[y], table);
+        function resolve_value(string, t=null) {
+            return (string || '').split('.').reduce((x, y) => x && x[y], t ?? table);
         }
 
-        const func = resolve_function(fn);
+        const func = resolve_value(fn);
         if (typeof func != 'function') {
             throw new Error(`no such function ${fn}`);
         }
