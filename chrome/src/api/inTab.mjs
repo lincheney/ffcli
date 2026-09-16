@@ -167,6 +167,10 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
 
                 call(path, key, fnArgs, ...args) {
                     const nodes = getNodes(path, ...args);
+                    if (fnArgs && !Array.isArray(fnArgs)) {
+                        // you probably meant this to be the one argument rather than one per char
+                        fnArgs = [fnArgs];
+                    }
                     return nodes.map(x => {
                         let value = x[key](...(fnArgs || []));
                         if (value instanceof HTMLElement || value instanceof SVGElement || value instanceof HTMLDocument) {
