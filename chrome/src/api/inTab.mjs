@@ -32,7 +32,51 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
             },
         };
 
-        function getNodes(path, filter) {
+        function pickNode() {
+
+            if (!window.addedPickNodeCss) {
+                const style = document.createElement('style');
+                style.textContent = `
+                .ffcli-picknode {
+                    box-shadow: inset 0 0 9999px 9999px rgba(255, 0, 0, 0.2);
+                    outline: 2px dashed red;
+                }
+                `;
+                document.head.appendChild(style);
+                window.addedPickNodeCss = true;
+            }
+
+            return new Promise(resolve => {
+                let prevTarget = null;
+
+                const onMouseMove = (event) => {
+                    event?.preventDefault();
+                    event?.stopPropagation();
+                    if (prevTarget) {
+                        prevTarget.classList.remove('ffcli-picknode');
+                    }
+                    prevTarget = event.target;
+                    prevTarget.classList.add('ffcli-picknode');
+                };
+                const onClick = (event) => {
+                    event?.preventDefault();
+                    event?.stopPropagation();
+                    document.removeEventListener('click', onClick, false);
+                    document.removeEventListener('mousemove', onMouseMove, false);
+                    if (prevTarget) {
+                        prevTarget.classList.remove('ffcli-picknode');
+                    }
+                    resolve([event.target]);
+                    return false;
+                };
+
+                document.addEventListener('click', onClick, false);
+                document.addEventListener('mousemove', onMouseMove, false);
+
+            });
+        }
+
+        async function getNodes(path, filter) {
             let nodes = [];
             try {
                 filter = filter ?? {};
@@ -52,6 +96,8 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                             nodes = Array.from(filter.parent ? [] : [document]);
                         } else if (path.match(/^:window(\.\w+)*$/)) {
                             nodes = Array.from(filter.parent ? [] : [resolve_value(path.slice(1), {window})]);
+                        } else if (path === ':pick') {
+                            nodes = filter.parent ? [] : await pickNode();
                         } else {
                             nodes = Array.from(parent ? parent.querySelectorAll(path) : []);
                         }
@@ -122,8 +168,8 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
 
             dom: {
 
-                get(path, keys, ...args) {
-                    const nodes = getNodes(path, ...args);
+                async get(path, keys, ...args) {
+                    const nodes = await getNodes(path, ...args);
                     const manyKeys = Array.isArray(keys);
                     if (!manyKeys) {
                         keys = [keys];
@@ -131,9 +177,9 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     return getNodeValues(nodes, keys, manyKeys);
                 },
 
-                shadowRootGet(path, shadowSelector, keys, ...args) {
+                async shadowRootGet(path, shadowSelector, keys, ...args) {
                     const nodes = [];
-                    for (const n of getNodes(path, ...args)) {
+                    for (const n of await getNodes(path, ...args)) {
                         if (n.shadowRoot) {
                             nodes.push(...n.shadowRoot.querySelectorAll(shadowSelector));
                         }
@@ -145,28 +191,28 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     return getNodeValues(nodes, keys, manyKeys);
                 },
 
-                count(...args) {
-                    return getNodes(...args).length;
+                async count(...args) {
+                    return (await getNodes(...args)).length;
                 },
 
-                set(path, key, value, ...args) {
-                    const nodes = getNodes(path, ...args);
+                async set(path, key, value, ...args) {
+                    const nodes = await getNodes(path, ...args);
                     for (const node of nodes) {
                         node[key] = value;
                     }
                     return nodes.length;
                 },
 
-                defineProperty(path, key, prop, ...args) {
-                    const nodes = getNodes(path, ...args);
+                async defineProperty(path, key, prop, ...args) {
+                    const nodes = await getNodes(path, ...args);
                     for (const node of nodes) {
                         Object.defineProperty(node, key, prop);
                     }
                     return nodes.length;
                 },
 
-                call(path, key, fnArgs, ...args) {
-                    const nodes = getNodes(path, ...args);
+                async call(path, key, fnArgs, ...args) {
+                    const nodes = await getNodes(path, ...args);
                     if (fnArgs && !Array.isArray(fnArgs)) {
                         // you probably meant this to be the one argument rather than one per char
                         fnArgs = [fnArgs];
@@ -181,8 +227,8 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
-                getAttributes(...args) {
-                    return getNodes(...args).map(x => {
+                async getAttributes(...args) {
+                    return await getNodes(...args).map(x => {
                         const attrs = {};
                         for (const attr of x.attributes) {
                             attrs[attr.name] = attr.value;
@@ -191,15 +237,15 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
-                getComputedStyle(...args) {
-                    return getNodes(...args).map(x => prepare_for_serialization(window.getComputedStyle(x)));
+                async getComputedStyle(...args) {
+                    return await getNodes(...args).map(x => prepare_for_serialization(window.getComputedStyle(x)));
                 },
 
-                sendKey(path, key, code, ...args) {
+                async sendKey(path, key, code, ...args) {
                     const props = {bubbles: true, composed: true, cancelable: true}
                     const charCode = code ?? key.charCodeAt(0);
                     const keyProps = {key, code: key, charCode, keyCode: charCode, which: charCode, ...props};
-                    const nodes = args.length > 0 ? getNodes(path, ...args) : [document];
+                    const nodes = args.length > 0 ? await getNodes(path, ...args) : [document];
                     return nodes.map(x => {
                         x.dispatchEvent(new FocusEvent('focus', props));
                         x.dispatchEvent(new KeyboardEvent('keydown', keyProps));
@@ -212,8 +258,8 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
-                dispatchEvent(path, type, options, cls, ...args) {
-                    const nodes = getNodes(path, ...args);
+                async dispatchEvent(path, type, options, cls, ...args) {
+                    const nodes = await getNodes(path, ...args);
                     const event_cls = window[`${cls ?? ''}Event`];
                     return nodes.map(x => {
                         const event = new event_cls(type, options);
