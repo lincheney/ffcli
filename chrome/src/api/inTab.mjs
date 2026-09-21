@@ -143,7 +143,7 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     }
                     value = prepare_for_serialization(value, n);
 
-                    if (value instanceof HTMLElement || value instanceof SVGElement || value instanceof HTMLDocument || value instanceof Window) {
+                    if (value instanceof Element || value instanceof HTMLDocument || value instanceof Window) {
                         // make some refs
                         value = window.nodes.set_ref(value);
                     }
@@ -267,6 +267,21 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                     });
                 },
 
+                async calcCssPath(path, ...args) {
+                    const nodes = await getNodes(path, ...args);
+                    return nodes.map(x => {
+                        if (x instanceof Element) {
+                            const parts = [];
+                            while (x && x instanceof Element) {
+                                const cls = Array.from(x.classList).join('.');
+                                parts.unshift(x.tagName.toLowerCase() + (cls && '.' + cls) + (x.id && '#' + x.id));
+                                x = x.parentNode;
+                            }
+                            return parts.join(' > ');
+                        }
+                    });
+                },
+
             },
         };
 
@@ -351,6 +366,7 @@ for (const [k, v] of Object.entries({
     getAttributes: 1,
     getComputedStyle: 1,
     dispatchEvent: 4,
+    calcCssPath: 1,
 })) {
     api.dom[k] = makeApi('dom.' + k, v);
 }
