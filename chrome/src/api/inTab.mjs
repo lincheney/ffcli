@@ -228,7 +228,7 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                 },
 
                 async getAttributes(...args) {
-                    return await getNodes(...args).map(x => {
+                    return (await getNodes(...args)).map(x => {
                         const attrs = {};
                         for (const attr of x.attributes) {
                             attrs[attr.name] = attr.value;
@@ -238,7 +238,7 @@ export async function executeApi(msg, fn, tabId, opts, ...args) {
                 },
 
                 async getComputedStyle(...args) {
-                    return await getNodes(...args).map(x => prepare_for_serialization(window.getComputedStyle(x)));
+                    return (await getNodes(...args)).map(x => prepare_for_serialization(window.getComputedStyle(x)));
                 },
 
                 async sendKey(path, key, code, ...args) {
