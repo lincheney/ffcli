@@ -1,5 +1,5 @@
 import { browser } from '../browser.mjs';
-import { executeInTab } from './index.mjs';
+import { executeInTab, call_function } from './index.mjs';
 
 export async function executeApi(msg, fn, tabId, opts, ...args) {
     return executeInTab(tabId, opts, [msg, tabId, fn, args], async (msg, tabId, fn, args) => {
@@ -353,6 +353,44 @@ export const api = {
             return false;
         },
     },
+
+    async execjs(code, {tabId=0, target={}}={}) {
+        if (tabId == 0) {
+            tabId = (await call_function('browser.tabs.query', {active: true, currentWindow: true}))[0].id;
+        }
+        target.tabId ??= tabId;
+        const results = await browser.userScripts.execute({
+            js: [
+                {code: `
+(async function(func) {
+    let value;
+    try {
+        value = func();
+        if (value instanceof Promise) {
+            value = await value;
+        }
+    } catch(e) {
+        throw \`\${e.toString()}\\n\${e.stack.trim()}\`;
+    }
+
+    if (value && !JSON.stringify(value)) {
+        value = \`[\${typeof value}]\`;
+    } else if (typeof value === 'object' && value.__proto__ !== Object.prototype) {
+        value = JSON.parse(JSON.stringify(value));
+    }
+    return value;
+})(async () => {`.replaceAll('\n', '') + code + '})'},
+            ],
+            target,
+        });
+        for (const x of results) {
+            if (x.error instanceof SyntaxError) {
+                x.error = `${x.error.toString()}\n   at ${x.error.fileName}:${x.error.lineNumber}:${x.error.columnNumber}`;
+            }
+        }
+        return results;
+    },
+
 };
 
 for (const [k, v] of Object.entries({

@@ -55,6 +55,7 @@
         "scripting",
         "search",
         "theme",
+        "userScripts",
         "webRequest",
         "webRequestBlocking",
         "webRequestFilterResponse",
@@ -84,6 +85,7 @@
         "tabs",
         "tabHide",
         "topSites",
+        "userScripts",
         "webNavigation"
     ]
 
