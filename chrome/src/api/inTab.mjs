@@ -12,7 +12,7 @@ async function inTabHandler(msg, fn, args) {
         set(obj) {
             let ref = window.refs.refs.get(obj);
             if (!ref) {
-                ref = Math.random().toString().replace(/^0\.0*/, '');
+                ref = parseInt(Math.random().toString().replace(/^0\.0*/, ''));
                 window.refs.refs.set(obj, ref);
                 window.refs.objs.set(ref, new WeakRef(obj));
             }
